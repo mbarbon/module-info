@@ -15,7 +15,7 @@ SKIP: {
                "Got the correct modules" );
 
     is_deeply( [ sort @{$mods{Cwd}} ], [ sort qw(1 1.00102 v1.1.2) ],
-               "Got the correct versions when speficied" );
+               "Got the correct versions when specified" );
 
     is_deeply( [], $mods{strict},
                "Got no version when not specified" );
