@@ -35,11 +35,105 @@ my %modes = (
                  }
              },
              modules_used => sub {
+                 # begin_av is an undocumented B function.
+                 foreach my $begin_cv (B::begin_av->ARRAY) {
+                     my $root = $begin_cv->ROOT;
+                     local $CurCV = $begin_cv;
+
+                     my $lineseq = $root->first;
+                     next if $lineseq->name ne 'lineseq';
+
+                     my $req_op = $lineseq->first->sibling;
+                     next if $req_op->name ne 'require';
+
+                     my $module;
+                     if( $req_op->first->private & B::OPpCONST_BARE ) {
+                         $module = const_sv($req_op->first)->PV;
+                         $module =~ s[/][::]g;
+                         $module =~ s/.pm$//;
+                     }
+                     else {
+                         $module = const(const_sv($req_op->first));
+                     }
+
+                     printf "use %s at %s line %s\n", $module,
+                                                      $begin_cv->FILE, 
+                                                      $begin_cv->START->line;
+                                                      
+                 }
+
                  walkoptree_filtered(B::main_root,
-                                     \&is_begin,
-                                     \&begin_is_use );
+                                     \&is_require,
+                                     \&show_require,
+                                    );
              },
             );
+
+
+sub const_sv {
+    my $op = shift;
+    my $sv = $op->sv;
+    # the constant could be in the pad (under useithreads)
+    $sv = padval($op->targ) unless $$sv;
+    return $sv;
+}
+
+sub const {
+    my $sv = shift;
+    if (B::class($sv) eq "SPECIAL") {
+        return ('undef', '1', '0')[$$sv-1]; # sv_undef, sv_yes, sv_no
+    } elsif (B::class($sv) eq "NULL") {
+        return 'undef';
+    } elsif ($sv->FLAGS & B::SVf_IOK) {
+        return $sv->int_value;
+    } elsif ($sv->FLAGS & B::SVf_NOK) {
+        # try the default stringification
+        my $r = "".$sv->NV;
+        if ($r =~ /e/) {
+            # If it's in scientific notation, we might have lost information
+            return sprintf("%.20e", $sv->NV);
+        }
+        return $r;
+    } elsif ($sv->FLAGS & B::SVf_ROK && $sv->can("RV")) {
+        return "\\(" . B::const($sv->RV) . ")"; # constant folded
+    } elsif ($sv->FLAGS & B::SVf_POK) {
+        my $str = $sv->PV;
+        if ($str =~ /[^ -~]/) { # ASCII for non-printing
+            return single_delim("qq", '"', uninterp escape_str unback $str);
+        } else {
+            return single_delim("q", "'", unback $str);
+        }
+    } else {
+        return "undef";
+    }
+}
+
+
+sub single_delim {
+    my($q, $default, $str) = @_;
+    return "$default$str$default" if $default and index($str, $default) == -1;
+    my($succeed, $delim);
+    ($succeed, $str) = balanced_delim($str);
+    return "$q$str" if $succeed;
+    for $delim ('/', '"', '#') {
+        return "$q$delim" . $str . $delim if index($str, $delim) == -1;
+    }
+    if ($default) {
+        $str =~ s/$default/\\$default/g;
+        return "$default$str$default";
+    } else {
+        $str =~ s[/][\\/]g;
+        return "$q/$str/";
+    }
+}
+
+
+sub padval {
+    my $targ = shift;
+    #cluck "curcv was undef" unless $self->{curcv};
+    return (($CurCV->PADLIST->ARRAY)[1]->ARRAY)[$targ];
+}
+
 
 sub sub_info {
     $File  ||= $B::Utils::file;
@@ -49,14 +143,49 @@ sub sub_info {
 
 sub is_begin {
     my($op) = shift;
-    print $op->name;
-    return $op->name eq 'begin';
+    my $name = $op->GV;
+    print $name;
+    return $name eq 'BEGIN';
 }
 
 sub begin_is_use {
     my($op) = shift;
     print "Saw begin\n";
 }
+
+
+sub is_require {
+    $_[0]->name eq 'require';
+}
+
+sub show_require {
+    my($op) = shift;
+
+    my($name, $bare);
+    if( B::class($op) eq "UNOP" and $op->first->name eq 'const'
+        and $op->first->private & B::OPpCONST_BARE ) {
+        $bare = 'bare';
+        $name = const_sv($op->first)->PV;
+    }
+    else {
+        $bare = 'not bare';
+        if ($op->flags & B::OPf_KIDS) {
+            my $kid = $op->first;
+            if (defined prototype("CORE::$name") 
+                && prototype("CORE::$name") =~ /^;?\*/
+                && $kid->name eq "rv2gv") {
+                $kid = $kid->first;
+            }
+
+            $name = $kid->sv->PV, "\n";
+        }       
+        else {
+            $name = "";
+        }
+    }
+    printf "require %s %s at line %d\n", $bare, $name, $B::Utils::line;
+}
+
 
 sub compile {
     my($mode) = shift;
