@@ -26,7 +26,7 @@ my $cur_pack;
 sub state_call {
     my($op) = shift;
     my $pack = $op->stashpv;
-    print "$pack\n" if $pack ne $cur_pack;
+    print "$pack\n" if !defined($cur_pack) || $pack ne $cur_pack;
     $cur_pack = $pack;
 }
 
