@@ -1,6 +1,6 @@
 package B::Module::Info;
 
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 use B;
 use B::Utils qw(walkoptree_filtered walkoptree_simple
@@ -177,7 +177,8 @@ sub show_require {
                 $kid = $kid->first;
             }
 
-            $name = $kid->sv->PV, "\n";
+            my $sv = $kid->sv;
+            $name = $sv->isa("B::PV") ? $sv->PV : $sv->NV, "\n";
         }       
         else {
             $name = "";
