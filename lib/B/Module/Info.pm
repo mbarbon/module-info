@@ -69,7 +69,6 @@ my %modes = (
                      printf "use %s at %s line %s\n", $module,
                                                       $begin_cv->FILE, 
                                                       $begin_cv->START->line;
-                                                      
                  }
 
                  walkoptree_filtered(B::main_root,
@@ -148,7 +147,6 @@ sub single_delim {
 
 sub padval {
     my $targ = shift;
-    #cluck "curcv was undef" unless $self->{curcv};
     return (($CurCV->PADLIST->ARRAY)[1]->ARRAY)[$targ];
 }
 
@@ -217,7 +215,7 @@ sub compile {
 
 
 sub sub_call {
-    $_[0]->name eq 'entersub';
+    B::class($_[0]) ne 'NULL' && $_[0]->name eq 'entersub';
 }
 
 sub sub_check {

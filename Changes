@@ -5,6 +5,8 @@
     - B::Utils's fake carp/croak were broken.
     - B::Utils::opgrep() was not finding ops properly
     - Test made more polite for systems who's path_sep is not :
+    - Fixing case where an op filter may encounter a NULL op when
+      checking for entersubs.
 
 0.12  Sat Feb  2 19:41:01 EST 2002
     * Added pfunc
