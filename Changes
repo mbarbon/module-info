@@ -1,5 +1,9 @@
 0.13
     - pfunc can now distinguish between class and object methods.
+    - B::Utils no longer loading Exporter to avoid loading a bunch of
+      modules.
+    - B::Utils's fake carp/croak were broken.
+    - B::Utils::opgrep() was not finding ops properly
 
 0.12  Sat Feb  2 19:41:01 EST 2002
     * Added pfunc

@@ -3,8 +3,6 @@ package B::Utils;
 use 5.006;
 use strict;
 use warnings;
-require Exporter;
-our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     walkoptree_simple walkoptree_filtered
                     walkallops_simple walkallops_filtered
@@ -12,13 +10,34 @@ our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     opgrep
                    );
 
-our $VERSION = 0.02_05;
+# Avoid calling Exporter so we don't add too much to the optree
+# ourselves.
+sub import {
+    my $pack = shift;
+    my @exports = @_;
+    my $caller = caller;
+    my %EOK = map {$_ => 1} @EXPORT_OK;
+
+    for (@exports) {   
+        unless ($EOK{$_}) {
+            require Carp;
+            Carp::croak(qq{"$_" is not exported by the $pack module});
+        }
+        no strict 'refs';
+        *{"$caller\::$_"} = \&{"$pack\::$_"};
+    }
+}
+
+
+our $VERSION = 0.02_06;
 
 use B qw(main_start main_root walksymtable class OPf_KIDS);
 
 my (%starts, %roots, @anon_subs);
 
-our @bad_stashes = qw(Carp B Exporter XSLoader strict warnings);
+our @bad_stashes = qw(B Carp DB Exporter warnings Cwd Config CORE
+                      blib strict DynaLoader vars XSLoader AutoLoader
+                      base);
 
 { my $_subsdone=0;
 sub _init { # To ensure runtimeness.
@@ -361,8 +380,8 @@ sub _preparewarn {
     $args .= " at $file line $line.\n" unless substr($args, length($args) -1) eq "\n";
 }
 
-sub carp  (@) { CORE::die(preparewarn(@_)) }
-sub croak (@) { CORE::warn(preparewarn(@_)) }
+sub croak (@) { CORE::die(_preparewarn(@_)) }
+sub carp  (@) { CORE::warn(_preparewarn(@_)) }
 
 =item opgrep(\%conditions, @ops)
 
@@ -416,7 +435,8 @@ sub opgrep {
             next OPLOOP if exists $conds{$_} and !$o->can($_);
         }
 
-        for my $test (qw(name targ type seq flags private pmflags pmpermflags)) {
+        for my $test (qw(name targ type seq flags private pmflags pmpermflags))
+        {
             next unless exists $conds{$test};
             next OPLOOP unless $o->can($test);
 
@@ -437,7 +457,7 @@ sub opgrep {
             next OPLOOP unless opgrep($conds{$neighbour}, $o->$neighbour);
         }
 
-        push @rv, $_;
+        push @rv, $o;
     }
     return @rv;
 }
