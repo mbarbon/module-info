@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 30;
+use Test::More tests => 32;
 use Config;
 
-my $Mod_Info_VERSION = 0.04;
+my $Mod_Info_VERSION = 0.05;
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
@@ -76,3 +76,11 @@ isa_ok($mod_info, 'Module::Info', 'all_installed');
 is( $mod_info->name, 'Module::Info',        '    name()' );
 is( $mod_info->version, $Mod_Info_VERSION,  '    version()' );
 ok( !$mod_info->is_core,                    '    not a core module' );
+
+
+# Ensure that code refs in @INC are skipped.
+my @mods = Module::Info->all_installed('Module::Info', (@INC, sub { die }));
+ok( @modules,       'all_installed() returned something' );
+ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
+                    "  they're all Module::Info objects"
+  );

@@ -5,7 +5,7 @@ use File::Spec;
 use Config;
 
 use vars qw($VERSION);
-$VERSION = 0.04;
+$VERSION = 0.05;
 
 
 =head1 NAME
@@ -139,6 +139,9 @@ sub _find_all_installed {
     
     my @modules = ();
     DIR: foreach my $dir (@inc) {
+        # Skip the new code ref in @INC feature.
+        next if ref $dir;
+
         my $filename = File::Spec->catfile($dir, $file);
         if( -r $filename ) {
             my $module = $class->new_from_file($filename);
@@ -306,6 +309,19 @@ can't find modules which might be used inside an C<eval>.
 
 sub modules_used { die "UNIMPLEMENTED" }
 
+=item B<subroutines>
+
+  my %subs = $module->subroutines;
+
+Returns a hash of all subroutines defined inside this module and a
+code reference to it.  The key is the *full* name of the subroutine
+(ie. $subs{'Some::Module::foo'} rather than just $subs{'foo'}), value
+is a code ref to the subroutine.
+
+Note this only catches simple C<sub foo {...}> subroutine
+declarations.  Anonymous, autoloaded or eval'd subroutines are not
+listed.
+
 =back
 
 =head1 AUTHOR
@@ -313,7 +329,12 @@ sub modules_used { die "UNIMPLEMENTED" }
 Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix
 and Module::InstalledVersion.
 
+=head1 CAVEATS
+
+Code refs in @INC are currently ignored.  If this bothers you submit a
+patch.
+
 =cut
 
-return 'Stepping on toes is what Schwerns to best!  *poing poing poing*';
+return 'Stepping on toes is what Schwerns do best!  *poing poing poing*';
 

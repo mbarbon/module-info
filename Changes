@@ -1,3 +1,7 @@
+0.05  Fri Nov 23 18:06:22 EST 2001
+    - Rafael Garcia-Suarez noticed I forgot to deal with code refs in
+      @INC.  The plan is to just skip them until someone notices.
+
 0.04  Fri Nov 23 14:49:21 EST 2001
     - Tassilo von Parseval noted warnings.pm isn't backwards compat.
       Replaced with $^W.
