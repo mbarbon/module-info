@@ -1,4 +1,4 @@
-0.25  Sun Jul 11 15:29:31     2004
+0.25  Sun Jul 11 16:36:11     2004
     - Fix test to work around modules_required reporting
       different version numbers (0.25 vs. 0.250) under bleadperl.
     + Report subroutine/method calls and modules required
