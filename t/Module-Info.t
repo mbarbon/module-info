@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 24;
+use Test::More tests => 30;
 use Config;
 
-my $Mod_Info_VERSION = 0.02;
+my $Mod_Info_VERSION = 0.03;
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
@@ -59,4 +59,20 @@ is( $mod_info->inc_dir, File::Spec->rel2abs('blib/lib'),
                                             '    inc_dir' );
 is( $mod_info->file, File::Spec->rel2abs('blib/lib/Module/Info.pm'),
                                             '    file()');
+ok( !$mod_info->is_core,                    '    not a core module' );
+
+
+@modules = Module::Info->all_installed('Module::Info');
+ok( @modules,       'all_installed() returned something' );
+ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
+                    "  they're all Module::Info objects"
+  );
+
+# I have no idea how many I'm going to get, so I'll only play with the 
+# first one.  It's the current one.
+$mod_info = $modules[0];
+isa_ok($mod_info, 'Module::Info', 'all_installed');
+
+is( $mod_info->name, 'Module::Info',        '    name()' );
+is( $mod_info->version, $Mod_Info_VERSION,  '    version()' );
 ok( !$mod_info->is_core,                    '    not a core module' );
