@@ -416,13 +416,6 @@ sub subroutines {
             grep /at \Q$mod_file\E /, @subs;
 }
 
-sub die_on_compilation_error {
-    my($self) = shift;
-
-    $self->{die_on_compilation_error} = $_[0] ? 1 : 0 if @_;
-    return $self->{die_on_compilation_error};
-}
-
 sub _is_win95() {
     return $^O eq 'MSWin32' && Win32::GetOSVersion() == 1;
 }
@@ -587,6 +580,36 @@ subroutines_called().
 sub dynamic_method_calls {
     my($self) = shift;
     return grep $_->{type} =~ /dynamic/, $self->subroutines_called;
+}
+
+=back
+
+=head2 Options
+
+The following methods get/set specific option values for the
+Module::Info object.
+
+=over 4
+
+=item B<die_on_compilation_error>
+
+  $module->die_on_compilation_error(0); # default
+  $module->die_on_compilation_error(1);
+  my $flag = $module->die_on_compilation_error;
+
+Sets/gets the "die on compilation error" flag. Whne the flag is off
+(default), and a module fails to compile, Module::Info simply emits a
+watning and continues. When the flag is on and a module fails to
+compile, Module::Info die()s with the same error message it would use
+in the warning.
+
+=cut
+
+sub die_on_compilation_error {
+    my($self) = shift;
+
+    $self->{die_on_compilation_error} = $_[0] ? 1 : 0 if @_;
+    return $self->{die_on_compilation_error};
 }
 
 =back
