@@ -131,7 +131,7 @@ EOT
             print "    $p\t";
             print +( defined( $packages_created{$p} ) ?
                                 $packages_created{$p} :
-                                     '(no version)' );
+                                      '(no version)' );
             print "\n";
         }
         print "    (none)\n" unless keys %packages_created;
