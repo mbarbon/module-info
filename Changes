@@ -1,3 +1,7 @@
+0.08  Mon Dec 10 14:24:56 EST 2001
+    * Implemented modules_used()
+    - Fixed a little bug in walkoptree_filtered() and $B::Utils::file/line
+
 0.07  Mon Dec 10 11:09:40 EST 2001
     * Implemented subroutines().  Need help getting modules_used() done.
     - Fixed up $B::Utils::file/line handling in B::Utils.
