@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 51;
 use Config;
 
-my $Mod_Info_VERSION = '0.14';
+my $Mod_Info_VERSION = '0.15';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -26,6 +26,8 @@ my @expected_subs = qw(
                        _file2mod          
                        subroutines        
                        superclasses
+                       die_on_compilation_error
+                       _is_macos_classic
                        _is_win95
                        _call_B
                        subroutines_called

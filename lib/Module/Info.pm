@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 
 =head1 NAME
@@ -44,6 +44,10 @@ Module::Info - Information about Perl modules
   my @lines     = $mod->gotos;          *UNIMPLEMENTED*
   my @controls  = $mod->exit_via_loop_control;      *UNIMPLEMENTED*
   my @unpredictables = $mod->has_unpredictables;    *UNIMPLEMENTED*
+
+  # set/get Module::Info options
+  $self->die_on_compilation_error(1);
+  my $die_on_error = $mod->die_on_compilation_error;
 
 =head1 DESCRIPTION
 
@@ -412,15 +416,28 @@ sub subroutines {
             grep /at \Q$mod_file\E /, @subs;
 }
 
-sub _is_win95 {
+sub die_on_compilation_error {
+    my($self) = shift;
+
+    $self->{die_on_compilation_error} = $_[0] ? 1 : 0 if @_;
+    return $self->{die_on_compilation_error};
+}
+
+sub _is_win95() {
     return $^O eq 'MSWin32' && Win32::GetOSVersion() == 1;
+}
+
+sub _is_macos_classic() {
+    return $^O eq 'MacOS';
 }
 
 sub _call_B {
     my($self, $arg) = @_;
 
     my $mod_file = $self->file;
-    my $command = qq{$^X "-MO=Module::Info,$arg" "$mod_file"};
+    my $command = _is_macos_classic ?
+      qq{perl "-MO=Module::Info,$arg" "$mod_file"} :
+      qq{$^X  "-MO=Module::Info,$arg" "$mod_file"};
     my @out;
 
     if( _is_win95 ) {
@@ -437,15 +454,26 @@ sub _call_B {
 
         waitpid $pid, 0;
     }
+    elsif( _is_macos_classic ) {
+        @out = `command`;
+    }
     else {
         @out = `$command 2>&1`;
     }
 
     if( $? ) {
         my $exit = $? >> 8;
-        warn join "\n", "B::Module::Info,$arg use failed with $exit saying:", 
-                        @out;
-        return;
+        my $msg = join "\n",
+                       "B::Module::Info,$arg use failed with $exit saying:",
+                       @out;
+
+        if( $self->{die_on_compilation_error} ) {
+            die $msg;
+        }
+        else {
+            warn $msg;
+            return;
+        }
     }
 
     @out = grep !/syntax OK$/, @out;
@@ -580,4 +608,3 @@ not caching anything.  I'll worry about efficiency later.
 =cut
 
 return 'Stepping on toes is what Schwerns do best!  *poing poing poing*';
-
