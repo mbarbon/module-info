@@ -1,6 +1,6 @@
 package B::Module::Info;
 
-$VERSION = '0.08';
+$VERSION = '0.23';
 
 use B;
 use B::Utils qw(walkoptree_filtered walkoptree_simple
@@ -69,7 +69,7 @@ my %modes = (
                  while( my($name, $op) = each %roots ) {
                      local($File, $Start, $End);
                      walkoptree_simple($op, \&sub_info);
-                     print "$name at $File from $Start to $End\n";
+                     print "$name at \"$File\" from $Start to $End\n";
                  }
              },
              modules_used => sub {
@@ -108,7 +108,7 @@ my %modes = (
                              next;
                          }
 
-                         printf "use %s (%s) at %s line %s\n",
+                         printf "use %s (%s) at \"%s\" line %s\n",
                              $module,
                              get_required_version($req_op, $module),
                              $begin_cv->FILE,
@@ -347,7 +347,7 @@ sub sub_check {
     # static method call
     if( my($kid) = grep $_->name eq 'method_named', @kids ) {
         my $class = _class_or_object_method(@kids);
-        printf "%s method call to %s%s at %s line %d\n", 
+        printf "%s method call to %s%s at \"%s\" line %d\n", 
           $class ? "class" : "object",
           const_sv($kid)->PV,
           $class ? " via $class" : '',
@@ -356,7 +356,7 @@ sub sub_check {
     # dynamic method call
     elsif( my($kid) = grep $_->name eq 'method', @kids ) {
         my $class = _class_or_object_method(@kids);
-        printf "dynamic %s method call%s at %s line %d\n",
+        printf "dynamic %s method call%s at \"%s\" line %d\n",
           $class ? "class" : "object",
           $class ? " via $class" : '',
           $B::Utils::file, $B::Utils::line;
@@ -366,11 +366,11 @@ sub sub_check {
         my($name_op) = grep($_->name eq 'gv', @kids);
         if( $name_op ) {
             my $gv = gv_or_padgv($name_op);
-            printf "function call to %s at %s line %d\n", 
+            printf "function call to %s at \"%s\" line %d\n", 
               $gv->NAME, $B::Utils::file, $B::Utils::line;
         }
         else {
-            printf "function call using symbolic ref at %s line %d\n",
+            printf "function call using symbolic ref at \"%s\" line %d\n",
               $B::Utils::file, $B::Utils::line;
         }
     }

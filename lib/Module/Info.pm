@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.22';
+$VERSION = '0.23';
 
 
 =head1 NAME
@@ -124,7 +124,7 @@ sub new_from_loaded {
 
     my $module = Module::Info->new_from_file($filepath);
     $module->{name} = $name;
-    ($module->{dir} = $filepath) =~ s|/?$mod_file$||;
+    ($module->{dir} = $filepath) =~ s|/?\Q$mod_file\E$||;
     $module->{dir} = File::Spec->rel2abs($module->{dir});
 
     return $module;
@@ -390,7 +390,7 @@ sub modules_used {
 Returns a list of all modules and files which may be C<use>'d or
 C<require>'d by this module, together with the minimum required version.
 
-The hash is keyes on the module/file name, the corrisponding value is
+The hash is keyed on the module/file name, the corrisponding value is
 an array reference containing the requied versions, or an empty array
 if no specific version was required.
 
@@ -407,7 +407,7 @@ sub modules_required {
 
     my @used_mods = ();
     my %used_mods = ();
-    for (grep /^use \D/ && /at \Q$mod_file\E /, @mods) {
+    for (grep /^use \D/ && /at "\Q$mod_file\E" /, @mods) {
         my($file, $version) = /^use (\S+) \(([^\)]*)\)/;
         $used_mods{_file2mod($file)} ||= [];
         next unless defined $version and length $version;
@@ -471,9 +471,9 @@ sub subroutines {
 
     my $mod_file = $self->file;
     my @subs = $self->_call_B('subroutines');
-    return  map { /^(\S+) at \S+ from (\d+) to (\d+)/; 
-                  ($1 => { start => $2, end => $3 }) } 
-            grep /at \Q$mod_file\E /, @subs;
+    return  map { /^(\S+) at "[^"]+" from (\d+) to (\d+)/;
+                  ($1 => { start => $2, end => $3 }) }
+            grep /at "\Q$mod_file\E" /, @subs;
 }
 
 sub _is_win95() {
@@ -603,7 +603,7 @@ sub subroutines_called {
     my @subs = $self->_call_B('subs_called');
     my $mod_file = $self->file;
 
-    @subs = grep /at \Q$mod_file\E line/, @subs;
+    @subs = grep /at "\Q$mod_file\E" line/, @subs;
     my @out = ();
     foreach (@subs) {
         my %info = ();
