@@ -8,7 +8,7 @@ $^C ||= 0;
 
 use strict;
 use vars qw($VERSION $CLASS);
-$VERSION = 0.07;
+$VERSION = '0.15';
 $CLASS = __PACKAGE__;
 
 my $IsVMS = $^O eq 'VMS';
@@ -19,6 +19,22 @@ my @Test_Details = ();
 my($Test_Died) = 0;
 my($Have_Plan) = 0;
 my $Curr_Test = 0;
+
+# Make Test::Builder thread-safe for ithreads.
+BEGIN {
+    use Config;
+    if( $] >= 5.008 && $Config{useithreads} ) {
+        require threads;
+        require threads::shared;
+        threads::shared->import;
+        share(\$Curr_Test);
+        share(\@Test_Details);
+        share(\@Test_Results);
+    }
+    else {
+        *lock = sub { 0 };
+    }
+}
 
 
 =head1 NAME
@@ -55,11 +71,10 @@ Test::Builder - Backend for building test libraries
 
 =head1 DESCRIPTION
 
-I<THIS IS ALPHA GRADE SOFTWARE>  The interface will change.
-
 Test::Simple and Test::More have proven to be popular testing modules,
-but they're not always flexible enough.  Test::Builder provides the
-a building block upon which to write your own test libraries.
+but they're not always flexible enough.  Test::Builder provides the a
+building block upon which to write your own test libraries I<which can
+work together>.
 
 =head2 Construction
 
@@ -132,6 +147,11 @@ sub plan {
 
     return unless $cmd;
 
+    if( $Have_Plan ) {
+        die sprintf "You tried to plan twice!  Second plan at %s line %d\n",
+          ($self->caller)[1,2];
+    }
+
     if( $cmd eq 'no_plan' ) {
         $self->no_plan;
     }
@@ -150,6 +170,13 @@ sub plan {
             die "You said to run 0 tests!  You've got to run something.\n";
         }
     }
+    else {
+        require Carp;
+        my @args = grep { defined } ($cmd, $arg);
+        Carp::croak("plan() doesn't understand @args");
+    }
+
+    return 1;
 }
 
 =item B<expected_tests>
@@ -237,14 +264,16 @@ sub ok {
     my($self, $test, $name) = @_;
 
     unless( $Have_Plan ) {
-        die "You tried to run a test without a plan!  Gotta have a plan.\n";
+        require Carp;
+        Carp::croak("You tried to run a test without a plan!  Gotta have a plan.");
     }
 
+    lock $Curr_Test;
     $Curr_Test++;
-    
+
     $self->diag(<<ERR) if defined $name and $name =~ /^[\d\s]+$/;
-You named your test '$name'.  You shouldn't use numbers for your test names.
-Very confusing.
+    You named your test '$name'.  You shouldn't use numbers for your test names.
+    Very confusing.
 ERR
 
     my($pack, $file, $line) = $self->caller;
@@ -279,7 +308,7 @@ ERR
 
     unless( $test ) {
         my $msg = $todo ? "Failed (TODO)" : "Failed";
-        $self->diag("$msg test ($file at line $line)\n");
+        $self->diag("    $msg test ($file at line $line)\n");
     } 
 
     return $test ? 1 : 0;
@@ -302,45 +331,62 @@ numeric version.
 =cut
 
 sub is_eq {
-    my $self = shift;
+    my($self, $got, $expect, $name) = @_;
     local $Level = $Level + 1;
-    return $self->_is('eq', @_);
+
+    if( !defined $got || !defined $expect ) {
+        # undef only matches undef and nothing else
+        my $test = !defined $got && !defined $expect;
+
+        $self->ok($test, $name);
+        $self->_is_diag($got, 'eq', $expect) unless $test;
+        return $test;
+    }
+
+    return $self->cmp_ok($got, 'eq', $expect, $name);
 }
 
 sub is_num {
-    my $self = shift;
+    my($self, $got, $expect, $name) = @_;
     local $Level = $Level + 1;
-    return $self->_is('==', @_);
+
+    if( !defined $got || !defined $expect ) {
+        # undef only matches undef and nothing else
+        my $test = !defined $got && !defined $expect;
+
+        $self->ok($test, $name);
+        $self->_is_diag($got, '==', $expect) unless $test;
+        return $test;
+    }
+
+    return $self->cmp_ok($got, '==', $expect, $name);
 }
 
-sub _is {
-    my($self, $type, $got, $expect, $name) = @_;
+sub _is_diag {
+    my($self, $got, $type, $expect) = @_;
 
-    my $test;
-    {
-        if( !defined $got || !defined $expect ) {
-            # undef only matches undef and nothing else
-            $test = !defined $got && !defined $expect;
+    foreach my $val (\$got, \$expect) {
+        if( defined $$val ) {
+            if( $type eq 'eq' ) {
+                # quote and force string context
+                $$val = "'$$val'"
+            }
+            else {
+                # force numeric context
+                $$val = $$val+0;
+            }
         }
         else {
-            $test = $type eq 'eq' ? $got eq $expect
-                                  : $got == $expect;
+            $$val = 'undef';
         }
     }
-    local $Level = $Level + 1;
-    my $ok = $self->ok($test, $name);
 
-    unless( $ok ) {
-        $got    = defined $got    ? "'$got'"    : 'undef';
-        $expect = defined $expect ? "'$expect'" : 'undef';
-        $self->diag(sprintf <<DIAGNOSTIC, $got, $expect);
-     got: %s
-expected: %s
+    return $self->diag(sprintf <<DIAGNOSTIC, $got, $expect);
+         got: %s
+    expected: %s
 DIAGNOSTIC
-    }        
 
-    return $ok;
-}
+}    
 
 =item B<isnt_eq>
 
@@ -349,7 +395,7 @@ DIAGNOSTIC
 Like Test::More's isnt().  Checks if $got ne $dont_expect.  This is
 the string version.
 
-=item B<is_num>
+=item B<isnt_num>
 
   $Test->is_num($got, $dont_expect, $name);
 
@@ -359,44 +405,35 @@ the numeric version.
 =cut
 
 sub isnt_eq {
-    my $self = shift;
+    my($self, $got, $dont_expect, $name) = @_;
     local $Level = $Level + 1;
-    return $self->_isnt('ne', @_);
+
+    if( !defined $got || !defined $dont_expect ) {
+        # undef only matches undef and nothing else
+        my $test = defined $got || defined $dont_expect;
+
+        $self->ok($test, $name);
+        $self->_cmp_diag('ne', $got, $dont_expect) unless $test;
+        return $test;
+    }
+
+    return $self->cmp_ok($got, 'ne', $dont_expect, $name);
 }
 
 sub isnt_num {
-    my $self = shift;
+    my($self, $got, $dont_expect, $name) = @_;
     local $Level = $Level + 1;
-    return $self->_isnt('==', @_);
-}
 
-sub _isnt {
-    my($self, $type, $got, $dont_expect, $name) = @_;
+    if( !defined $got || !defined $dont_expect ) {
+        # undef only matches undef and nothing else
+        my $test = defined $got || defined $dont_expect;
 
-    my $test;
-    {
-        if( !defined $got || !defined $dont_expect ) {
-            # undef only matches undef and nothing else
-            $test = defined $got || defined $dont_expect;
-        }
-        else {
-            $test = $type eq 'ne' ? $got ne $dont_expect
-                                  : $got != $dont_expect;
-        }
+        $self->ok($test, $name);
+        $self->_cmp_diag('!=', $got, $dont_expect) unless $test;
+        return $test;
     }
-    local $Level = $Level + 1;
-    my $ok = $self->ok($test, $name);
 
-    unless( $ok ) {
-        $dont_expect = defined $dont_expect ? "'$dont_expect'" : 'undef';
-
-        $self->diag(sprintf <<DIAGNOSTIC, $dont_expect);
-it should not be %s
-but it is.
-DIAGNOSTIC
-    }        
-
-    return $ok;
+    return $self->cmp_ok($got, '!=', $dont_expect, $name);
 }
 
 
@@ -409,41 +446,167 @@ Like Test::More's like().  Checks if $this matches the given $regex.
 
 You'll want to avoid qr// if you want your tests to work before 5.005.
 
+=item B<unlike>
+
+  $Test->unlike($this, qr/$regex/, $name);
+  $Test->unlike($this, '/$regex/', $name);
+
+Like Test::More's unlike().  Checks if $this B<does not match> the
+given $regex.
+
 =cut
 
 sub like {
     my($self, $this, $regex, $name) = @_;
 
     local $Level = $Level + 1;
+    $self->_regex_ok($this, $regex, '=~', $name);
+}
 
-    my $ok = 0;
+sub unlike {
+    my($self, $this, $regex, $name) = @_;
+
+    local $Level = $Level + 1;
+    $self->_regex_ok($this, $regex, '!~', $name);
+}
+
+=item B<maybe_regex>
+
+  $Test->maybe_regex(qr/$regex/);
+  $Test->maybe_regex('/$regex/');
+
+Convenience method for building testing functions that take regular
+expressions as arguments, but need to work before perl 5.005.
+
+Takes a quoted regular expression produced by qr//, or a string
+representing a regular expression.
+
+Returns a Perl value which may be used instead of the corresponding
+regular expression, or undef if it's argument is not recognised.
+
+For example, a version of like(), sans the useful diagnostic messages,
+could be written as:
+
+  sub laconic_like {
+      my ($self, $this, $regex, $name) = @_;
+      my $usable_regex = $self->maybe_regex($regex);
+      die "expecting regex, found '$regex'\n"
+          unless $usable_regex;
+      $self->ok($this =~ m/$usable_regex/, $name);
+  }
+
+=cut
+
+
+sub maybe_regex {
+	my ($self, $regex) = @_;
+    my $usable_regex = undef;
     if( ref $regex eq 'Regexp' ) {
-        local $^W = 0;
-        $ok = $self->ok( $this =~ $regex ? 1 : 0, $name );
+        $usable_regex = $regex;
     }
     # Check if it looks like '/foo/'
     elsif( my($re, $opts) = $regex =~ m{^ /(.*)/ (\w*) $ }sx ) {
-        local $^W = 0;
-        $ok = $self->ok( $this =~ /(?$opts)$re/ ? 1 : 0, $name );
-    }
-    else {
+        $usable_regex = length $opts ? "(?$opts)$re" : $re;
+    };
+    return($usable_regex)
+};
+
+sub _regex_ok {
+    my($self, $this, $regex, $cmp, $name) = @_;
+
+    local $Level = $Level + 1;
+
+    my $ok = 0;
+    my $usable_regex = $self->maybe_regex($regex);
+    unless (defined $usable_regex) {
         $ok = $self->ok( 0, $name );
-
-        $self->diag("'$regex' doesn't look much like a regex to me.");
-
+        $self->diag("    '$regex' doesn't look much like a regex to me.");
         return $ok;
+    }
+
+    {
+        local $^W = 0;
+        my $test = $this =~ /$usable_regex/ ? 1 : 0;
+        $test = !$test if $cmp eq '!~';
+        $ok = $self->ok( $test, $name );
     }
 
     unless( $ok ) {
         $this = defined $this ? "'$this'" : 'undef';
-        $self->diag(sprintf <<DIAGNOSTIC, $this);
-              %s
-doesn't match '$regex'
+        my $match = $cmp eq '=~' ? "doesn't match" : "matches";
+        $self->diag(sprintf <<DIAGNOSTIC, $this, $match, $regex);
+                  %s
+    %13s '%s'
 DIAGNOSTIC
 
     }
 
     return $ok;
+}
+
+=item B<cmp_ok>
+
+  $Test->cmp_ok($this, $type, $that, $name);
+
+Works just like Test::More's cmp_ok().
+
+    $Test->cmp_ok($big_num, '!=', $other_big_num);
+
+=cut
+
+sub cmp_ok {
+    my($self, $got, $type, $expect, $name) = @_;
+
+    my $test;
+    {
+        local $^W = 0;
+        local($@,$!);   # don't interfere with $@
+                        # eval() sometimes resets $!
+        $test = eval "\$got $type \$expect";
+    }
+    local $Level = $Level + 1;
+    my $ok = $self->ok($test, $name);
+
+    unless( $ok ) {
+        if( $type =~ /^(eq|==)$/ ) {
+            $self->_is_diag($got, $type, $expect);
+        }
+        else {
+            $self->_cmp_diag($got, $type, $expect);
+        }
+    }
+    return $ok;
+}
+
+sub _cmp_diag {
+    my($self, $got, $type, $expect) = @_;
+    
+    $got    = defined $got    ? "'$got'"    : 'undef';
+    $expect = defined $expect ? "'$expect'" : 'undef';
+    return $self->diag(sprintf <<DIAGNOSTIC, $got, $type, $expect);
+    %s
+        %s
+    %s
+DIAGNOSTIC
+}
+
+=item B<BAILOUT>
+
+    $Test->BAILOUT($reason);
+
+Indicates to the Test::Harness that things are going so badly all
+testing should terminate.  This includes running any additional test
+scripts.
+
+It will exit with 255.
+
+=cut
+
+sub BAILOUT {
+    my($self, $reason) = @_;
+
+    $self->_print("Bail out!  $reason");
+    exit 255;
 }
 
 =item B<skip>
@@ -460,9 +623,11 @@ sub skip {
     $why ||= '';
 
     unless( $Have_Plan ) {
-        die "You tried to run tests without a plan!  Gotta have a plan.\n";
+        require Carp;
+        Carp::croak("You tried to run tests without a plan!  Gotta have a plan.");
     }
 
+    lock($Curr_Test);
     $Curr_Test++;
 
     $Test_Results[$Curr_Test-1] = 1;
@@ -475,6 +640,43 @@ sub skip {
 
     return 1;
 }
+
+
+=item B<todo_skip>
+
+  $Test->todo_skip;
+  $Test->todo_skip($why);
+
+Like skip(), only it will declare the test as failing and TODO.  Similar
+to
+
+    print "not ok $tnum # TODO $why\n";
+
+=cut
+
+sub todo_skip {
+    my($self, $why) = @_;
+    $why ||= '';
+
+    unless( $Have_Plan ) {
+        require Carp;
+        Carp::croak("You tried to run tests without a plan!  Gotta have a plan.");
+    }
+
+    lock($Curr_Test);
+    $Curr_Test++;
+
+    $Test_Results[$Curr_Test-1] = 1;
+
+    my $out = "not ok";
+    $out   .= " $Curr_Test" if $self->use_numbers;
+    $out   .= " # TODO & SKIP $why\n";
+
+    $Test->_print($out);
+
+    return 1;
+}
+
 
 =begin _unimplemented
 
@@ -621,28 +823,42 @@ handle, but if this is for a TODO test, the todo_output() handle is
 used.
 
 Output will be indented and marked with a # so as not to interfere
-with test output.
+with test output.  A newline will be put on the end if there isn't one
+already.
 
 We encourage using this rather than calling print directly.
+
+Returns false.  Why?  Because diag() is often used in conjunction with
+a failing test (C<ok() || diag()>) it "passes through" the failure.
+
+    return ok(...) || diag(...);
+
+=for blame transfer
+Mark Fowler <mark@twoshortplanks.com>
 
 =cut
 
 sub diag {
     my($self, @msgs) = @_;
+    return unless @msgs;
 
     # Prevent printing headers when compiling (i.e. -c)
     return if $^C;
 
     # Escape each line with a #.
     foreach (@msgs) {
-        s/^([^#])/#     $1/;
-        s/\n([^#])/\n#     $1/g;
+        $_ = 'undef' unless defined;
+        s/^/# /gms;
     }
+
+    push @msgs, "\n" unless $msgs[-1] =~ /\n\Z/;
 
     local $Level = $Level + 1;
     my $fh = $self->todo ? $self->todo_output : $self->failure_output;
     local($\, $", $,) = (undef, ' ', '');
     print $fh @msgs;
+
+    return 0;
 }
 
 =begin _private
@@ -666,6 +882,15 @@ sub _print {
 
     local($\, $", $,) = (undef, ' ', '');
     my $fh = $self->output;
+
+    # Escape each line after the first with a # so we don't
+    # confuse Test::Harness.
+    foreach (@msgs) {
+        s/\n(.)/\n# $1/sg;
+    }
+
+    push @msgs, "\n" unless $msgs[-1] =~ /\n\Z/;
+
     print $fh @msgs;
 }
 
@@ -790,8 +1015,20 @@ You usually shouldn't have to set this.
 sub current_test {
     my($self, $num) = @_;
 
+    lock($Curr_Test);
     if( defined $num ) {
+        unless( $Have_Plan ) {
+            require Carp;
+            Carp::croak("Can't change the current test number without a plan!");
+        }
+
         $Curr_Test = $num;
+        if( $num > @Test_Results ) {
+            my $start = @Test_Results ? $#Test_Results : 0;
+            for ($start..$num-1) {
+                $Test_Results[$_] = 1;
+            }
+        }
     }
     return $Curr_Test;
 }
@@ -871,7 +1108,7 @@ Like the normal caller(), except it reports according to your level().
 sub caller {
     my($self, $height) = @_;
     $height ||= 0;
-    
+
     my @caller = CORE::caller($self->level + $height + 1);
     return wantarray ? @caller : $caller[0];
 }
@@ -976,29 +1213,34 @@ sub _ending {
             $Expected_Tests = $Curr_Test;
         }
 
+        # 5.8.0 threads bug.  Shared arrays will not be auto-extended 
+        # by a slice.
+        $Test_Results[$Expected_Tests-1] = undef
+          unless defined $Test_Results[$Expected_Tests-1];
+
         my $num_failed = grep !$_, @Test_Results[0..$Expected_Tests-1];
         $num_failed += abs($Expected_Tests - @Test_Results);
 
         if( $Curr_Test < $Expected_Tests ) {
             $self->diag(<<"FAIL");
-# Looks like you planned $Expected_Tests tests but only ran $Curr_Test.
+Looks like you planned $Expected_Tests tests but only ran $Curr_Test.
 FAIL
         }
         elsif( $Curr_Test > $Expected_Tests ) {
             my $num_extra = $Curr_Test - $Expected_Tests;
             $self->diag(<<"FAIL");
-# Looks like you planned $Expected_Tests tests but ran $num_extra extra.
+Looks like you planned $Expected_Tests tests but ran $num_extra extra.
 FAIL
         }
         elsif ( $num_failed ) {
             $self->diag(<<"FAIL");
-# Looks like you failed $num_failed tests of $Expected_Tests.
+Looks like you failed $num_failed tests of $Expected_Tests.
 FAIL
         }
 
         if( $Test_Died ) {
             $self->diag(<<"FAIL");
-# Looks like your test died just after $Curr_Test.
+Looks like your test died just after $Curr_Test.
 FAIL
 
             _my_exit( 255 ) && return;
@@ -1010,7 +1252,7 @@ FAIL
         _my_exit( 0 ) && return;
     }
     else {
-        $self->diag("# No tests run!\n");
+        $self->diag("No tests run!\n");
         _my_exit( 255 ) && return;
     }
 }
@@ -1019,9 +1261,16 @@ END {
     $Test->_ending if defined $Test and !$Test->no_ending;
 }
 
+=head1 THREADS
+
+In perl 5.8.0 and later, Test::Builder is thread-safe.  The test
+number is shared amongst all threads.  This means if one thread sets
+the test number using current_test() they will all be effected.
+
 =head1 EXAMPLES
 
-At this point, Test::Simple and Test::More are your best examples.
+CPAN can provide the best examples.  Test::Simple, Test::More,
+Test::Exception and Test::Differences all use Test::Builder.
 
 =head1 SEE ALSO
 
@@ -1040,7 +1289,7 @@ Copyright 2001 by chromatic E<lt>chromatic@wgz.orgE<gt>,
 This program is free software; you can redistribute it and/or 
 modify it under the same terms as Perl itself.
 
-See L<http://www.perl.com/perl/misc/Artistic.html>
+See F<http://www.perl.com/perl/misc/Artistic.html>
 
 =cut
 
