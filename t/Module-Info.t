@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 58;
 use Config;
 
-my $Mod_Info_VERSION = '0.19';
+my $Mod_Info_VERSION = '0.20';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -142,7 +142,7 @@ ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
 
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 15 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 17 unless $] >= 5.006001;
 
     my $module = Module::Info->new_from_file('t/lib/Foo.pm');
     my @packages = $module->packages_inside;
