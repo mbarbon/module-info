@@ -1,5 +1,6 @@
-0.03  Thu Nov 22 10:19:35 EST 2001
+0.03  Fri Nov 23 00:39:11 EST 2001
     - Testing all_installed()
+    - Abe Timmerman fixed a little portability bug in the test.
 
 0.02  Thu Nov 22 10:08:00 EST 2001
     * Added new_from_loaded()
