@@ -23,7 +23,8 @@ sub wibble {
 
 wibble('this is the function call');
 { no strict 'refs'; &{'wibble'}('this is a symref function call'); }
-Foo->wibble('bar');
+Foo->wibble(42);
+{ local @ARGV = (bless {});  shift->wibble(42); }
 my $obj = bless {};
 $obj->wibble('bar');
 my $method = 'wibble';
