@@ -1,3 +1,7 @@
+0.14  Sun Dec  8 11:42:11 CET 2002
+    - Don't show modules loaded via $ENV{PERL5OPT}.
+    - Fixed the case where an op may be NULL when searching for require.
+
 0.13  Sat Dec  7 10:29:42 CET 2002
     - pfunc can now distinguish between class and object methods.
     - B::Utils no longer loading Exporter to avoid loading a bunch of
