@@ -1,6 +1,6 @@
 package B::Module::Info;
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 use B;
 use B::Utils qw(walkoptree_filtered walkoptree_simple
@@ -87,6 +87,9 @@ my %modes = (
                      # cheat otherwise show_require guard prevents display
                      local $B::Utils::file = $begin_cv->FILE;
                      local $B::Utils::line = $begin_cv->START->line;
+
+                     # this is from $ENV{PERL5OPT}, skip it
+                     next if $B::Utils::line == 0;
 
                      my $lineseq = $root->first;
                      next if $lineseq->name ne 'lineseq';
@@ -224,7 +227,7 @@ sub begin_is_use {
 
 
 sub is_require {
-    $_[0]->name eq 'require';
+    B::class($_[0]) ne 'NULL' && $_[0]->name eq 'require';
 }
 
 sub show_require {
