@@ -33,6 +33,7 @@ WriteMakefile(
                          SUFFIX     => '.gz',
                          DIST_DEFAULT   => 'all tardist',
                        },
+    EXE_FILES       => [qw(bin/pfunc)],
 );
 
 
@@ -46,6 +47,10 @@ WriteMakefile(
         push @perls, qw(bleadperl
                         perl5.6.1
                         perl5.6.0
+                        perl5.005_03
+                        perl5.004_05
+                        perl5.004_04
+                        perl5.004
                        )
           if $ENV{PERL_TEST_ALL};
 
