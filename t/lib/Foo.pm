@@ -3,7 +3,8 @@ package Foo;
 use strict;
 require Exporter;
 require "t/lib/Foo.pm";
-use vars qw(@ISA);
+use vars qw(@ISA $VERSION);
+$VERSION = 7.254;
 
 @ISA = qw(This That What::Ever);
 

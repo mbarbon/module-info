@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.18';
+$VERSION = '0.19';
 
 
 =head1 NAME
@@ -324,13 +324,44 @@ B<KNOWN BUG> Currently doesn't spot package changes inside subroutines.
 sub packages_inside {
     my $self = shift;
 
-    my @packs = $self->_call_B('packages');
-
-    my %packs;
-    @packs{@packs} = (1) x @packs;
-
+    my %packs = map {$_, 1} $self->_call_B('packages');
     return keys %packs;
 }
+
+=item B<package_versions>
+
+  my %versions = $module->package_versions;
+
+Returns a hash whose keys are the packages contained in the module
+(these are the same as what's returned by C<packages_inside()>), and
+whose values are the versions of those packages.
+
+=cut
+
+sub package_versions {
+    my $self = shift;
+
+    my @packs = $self->packages_inside;
+
+    # To survive the print(), we translate undef into '~' and then back again.
+    (my $quoted_file = $self->file) =~ s/(['\\])/\\$1/g;
+    my $command = qq{-le "require '$quoted_file';};
+    $command .= " print defined $_->VERSION ? $_->VERSION : '~';"
+        foreach @packs;
+    $command .= qq{"};
+
+    my ($status, @versions) = $self->_call_perl($command);
+    chomp @versions;
+    foreach (@versions) {
+        $_ = undef if $_ eq '~';
+    }
+
+    my %map;
+    @map{@packs} = @versions;
+
+    return %map;
+}
+
 
 =item B<modules_used>
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 53;
+use Test::More tests => 58;
 use Config;
 
-my $Mod_Info_VERSION = '0.18';
+my $Mod_Info_VERSION = '0.19';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -22,6 +22,7 @@ my @expected_subs = qw(
                        file               
                        is_core            
                        packages_inside    
+                       package_versions
                        modules_used       
                        _file2mod          
                        subroutines        
@@ -51,13 +52,17 @@ is( $mod_info->file, File::Spec->rel2abs('lib/Module/Info.pm'),
 ok( !$mod_info->is_core,                    '    not a core module' );
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 6 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 8 unless $] >= 5.006001;
 
     @expected_subs = map "Module::Info::$_", @expected_subs;
 
     my @packages = $mod_info->packages_inside;
     is( @packages, 1,                   'Found a single package inside' );
     is( $packages[0], 'Module::Info',   '  and its what we want' );
+
+    my %versions = $mod_info->package_versions;
+    is( keys %versions, 1,                '1 package with package_versions()');
+    is( $versions{Module::Info}, $Mod_Info_VERSION, 'version is correct');
 
     my %subs = $mod_info->subroutines;
     is( keys %subs, @expected_subs,    'Found all the subroutines' );
@@ -137,12 +142,17 @@ ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
 
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 12 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 15 unless $] >= 5.006001;
 
     my $module = Module::Info->new_from_file('t/lib/Foo.pm');
     my @packages = $module->packages_inside;
     is( @packages, 2,       'Found two packages inside' );
     ok( eq_set(\@packages, [qw(Foo Bar)]),   "  they're right" );
+
+    my %versions = $module->package_versions;
+    is( keys %versions, 2,                '2 packages with package_versions()');
+    is( $versions{Foo}, '7.254',          'version is correct');
+    is( $versions{Bar}, undef,            'no version present');
 
     my %subs = $module->subroutines;
     is( keys %subs, 2,                          'Found two subroutine' );
@@ -150,8 +160,8 @@ SKIP: {
 
     my($start, $end) = @{$subs{'Foo::wibble'}}{qw(start end)};
     print "# start $start, end $end\n";
-    is( $start, 20,           '   start line' );
-    is( $end,   21,           '   end line'   );
+    is( $start, 21,           '   start line' );
+    is( $end,   22,           '   end line'   );
 
     my @mods = $module->modules_used;
     is( @mods, 7,           'modules_used' );
@@ -165,68 +175,69 @@ SKIP: {
 
     my @calls = $module->subroutines_called;
 
+    my $startline = 25;
     my @expected_calls = ({
-                           line     => 24,
+                           line     => $startline,
                            class    => undef,
                            type     => 'function',
                            name     => 'wibble'
                           },
                           {
-                           line     => 25,
+                           line     => $startline + 1,
                            class    => undef,
                            type     => 'symbolic function',
                            name     => undef,
                           },
                           {
-                           line     => 26,
+                           line     => $startline + 2,
                            class    => 'Foo',
                            type     => 'class method',
                            name     => 'wibble',
                           },
                           {
-                           line     => 27,
+                           line     => $startline + 3,
                            class    => undef,
                            type     => 'object method',
                            name     => 'wibble',
                           },
                           {
-                           line     => 29,
+                           line     => $startline + 5,
                            class    => undef,
                            type     => 'object method',
                            name     => 'wibble',
                           },
                           {
-                           line     => 31,
+                           line     => $startline + 7,
                            class    => 'Foo',
                            type     => 'dynamic class method',
                            name     => undef,
                           },
                           {
-                           line     => 32,
+                           line     => $startline + 8,
                            class    => undef,
                            type     => 'dynamic object method',
                            name     => undef,
                           },
                           {
-                           line     => 33,
+                           line     => $startline + 9,
                            class    => undef,
                            type     => 'dynamic object method',
                            name     => undef,
                           },
                           {
-                           line     => 34,
+                           line     => $startline + 10,
                            class    => 'Foo',
                            type     => 'dynamic class method',
                            name     => undef,
                           },
                           {
-                           line     => 38,
+                           line     => $startline + 14,
                            class    => undef,
                            type     => 'object method',
                            name     => 'wibble'
                           },
                           {
-                           line     => 51,
+                           line     => $startline + 27,
                            class    => undef,
                            type     => 'function',
                            name     => 'croak'
