@@ -96,13 +96,13 @@ File:        $file
 Core module: $is_core
 EOT
 
-    my @packages_created;
+    my %packages_created;
     my @modules_used;
     my %subroutines;
 
     eval {
         @modules_used = $info->modules_used if $show_modules;
-        @packages_created = $info->packages_inside if $show_packages;
+        %packages_created = $info->package_versions if $show_packages;
         %subroutines = $info->subroutines if $show_subroutines;
     };
     if( $@ ) {
@@ -127,10 +127,14 @@ EOT
     ###########################################################################
     if( $show_packages ) {
         print "\nPackages created:\n";
-        foreach my $p (sort @packages_created) {
-            print "    $p\n";
+        foreach my $p (sort keys %packages_created) {
+            print "    $p\t";
+            print ( defined( $packages_created{$p} ) ?
+                               $packages_created{$p} :
+                                     '(no version)' );
+            print "\n";
         }
-        print "    (none)\n" unless @packages_created;
+        print "    (none)\n" unless keys %packages_created;
     }
 
     ###########################################################################
