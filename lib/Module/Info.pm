@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 
 =head1 NAME
@@ -448,7 +448,7 @@ sub _call_perl {
         waitpid $pid, 0;
     }
     elsif( _is_macos_classic ) {
-        @out = `$command`;
+        @out = `$command \xb7 Dev:Stdout`;
     }
     else {
         @out = `$command 2>&1`;
