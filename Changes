@@ -1,3 +1,6 @@
+0.20
+    - Fixed a warning in module_info (thanks to Nathan Torkington)
+
 0.19  Tue Apr  1 15:45:43 CEST 2003
     + Added package_versions() (patch by Ken Williams).
     - Fixed handling of v-strings in use/require.
