@@ -45,7 +45,7 @@ is( $mod_info->name, 'Text::Soundex',       '    name()' );
 
 ok( grep($mod_info->inc_dir eq $_, @core_inc),       '    inc_dir()' );
 is( $mod_info->file, 
-    File::Spec->catfile( $mod_info->inc_dir, 'Text/Soundex.pm' ),
+    File::Spec->catfile( $mod_info->inc_dir, 'Text', 'Soundex.pm' ),
                                             '    file()');
 ok( $mod_info->is_core,                     '    core module' );
 
