@@ -1,10 +1,11 @@
 package B::Module::Info;
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use B;
 use B::Utils qw(walkoptree_filtered walkoptree_simple
                 opgrep all_roots);
+@B::Utils::bad_stashes = qw();  # give us everything.
 
 sub state_change {
     return opgrep {name => [qw(nextstate dbstate setstate)]}, @_
@@ -265,9 +266,8 @@ sub _class_or_object_method {
     my @kids = @_;
 
     my $class;
-    if( my($classop) = grep($_->name eq 'const', @kids) and
-        !grep($_->name =~ /^padsv|gvsv$/, @kids)
-      ) {
+    my($classop) = $kids[1];
+    if( $classop->name eq 'const' ) {
         $class = $classop->sv->PV;
     }
 
