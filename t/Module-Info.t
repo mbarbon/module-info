@@ -30,6 +30,8 @@ my @expected_subs = qw(
                        _is_macos_classic
                        _is_win95
                        _call_B
+                       _call_perl
+                       _get_extra_arguments
                        subroutines_called
                        dynamic_method_calls
                       );
