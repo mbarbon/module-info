@@ -1,8 +1,11 @@
 Changes
 MANIFEST
 Makefile.PL
+lib/B/Module/Info.pm
+lib/B/Utils.pm
 lib/Module/Info.pm
 t/Module-Info.t
+t/lib/Foo.pm
 t/lib/Test/Builder.pm
 t/lib/Test/More.pm
 t/lib/Test/Simple.pm

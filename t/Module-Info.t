@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 32;
+use Test::More tests => 36;
 use Config;
 
-my $Mod_Info_VERSION = 0.05;
+my $Mod_Info_VERSION = 0.06;
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
@@ -21,6 +21,14 @@ ok( !$mod_info->inc_dir,                    '    has no inc_dir' );
 is( $mod_info->file, File::Spec->rel2abs('lib/Module/Info.pm'),
                                             '    file()');
 ok( !$mod_info->is_core,                    '    not a core module' );
+
+SKIP: {
+    skip "Only works on 5.6.0 and up.", 2 unless $] >= 5.006;
+
+    my @packages = $mod_info->packages_inside;
+    is( @packages, 1,                   'Found a single package inside' );
+    is( $packages[0], 'Module::Info',   '  and its what we want' );
+}
 
 
 $mod_info = Module::Info->new_from_module('Module::Info');
@@ -84,3 +92,13 @@ ok( @modules,       'all_installed() returned something' );
 ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
                     "  they're all Module::Info objects"
   );
+
+
+SKIP: {
+    skip "Only works on 5.6.0 and up.", 2 unless $] >= 5.006;
+
+    my $module = Module::Info->new_from_file('t/lib/Foo.pm');
+    my @packages = $module->packages_inside;
+    is( @packages, 2,       'Found two packages inside' );
+    ok( eq_set(\@packages, [qw(Foo Bar)]),   "  they're right" );
+}

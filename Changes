@@ -1,3 +1,8 @@
+0.06  Sat Nov 24 20:45:15 EST 2001
+    * Implemented packages_inside().  Need help getting the rest done.
+    - Distributing a hacked up version of B::Utils until the main
+      distribution gets fixed.
+
 0.05  Fri Nov 23 18:06:22 EST 2001
     - Rafael Garcia-Suarez noticed I forgot to deal with code refs in
       @INC.  The plan is to just skip them until someone notices.

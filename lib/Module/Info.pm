@@ -5,7 +5,7 @@ use File::Spec;
 use Config;
 
 use vars qw($VERSION);
-$VERSION = 0.05;
+$VERSION = 0.06;
 
 
 =head1 NAME
@@ -30,8 +30,9 @@ Module::Info - Information about Perl modules
 
   # Only available in perl 5.6.1 and up.
   # These do compile the module.
-  my @packages = $mod->packages_inside;     **UNIMPLEMENTED**
+  my @packages = $mod->packages_inside;
   my @used     = $mod->modules_used;        **UNIMPLEMENTED**
+  my @subs     = $mod->subroutines;         **UNIMPLEMENTED**
 
 =head1 DESCRIPTION
 
@@ -219,7 +220,7 @@ sub version {
         $result = "undef" unless defined $result;
         last;
     }
-    close FH;
+    close MOD;
     return $result;
 }
 
@@ -277,13 +278,14 @@ sub is_core {
 =head2 Information that requires loading.
 
 The following methods get their information by compiling the module
-and examining the opcode tree.  They will only work on 5.6.1 and up.
+and examining the opcode tree.  The module will be compiled in a
+seperate process so as not to disturb the current program.
 
-They're also unimplemented.
+They will only work on 5.6.1 and up and require the B::Utils module.
 
 =over 4
 
-=item B<packages_inside> *UNIMPLEMENTED*
+=item B<packages_inside>
 
   my @packages = $module->packages_inside;
 
@@ -291,9 +293,26 @@ Looks for any explicit C<package> declarations inside the module and
 returns a list.  Useful for finding hidden classes and functionality
 (like Tie::StdHandle inside Tie::Handle).
 
+B<KNOWN BUG> Currently doesn't spot package changes inside subroutines.
+
 =cut
 
-sub packages_inside { die "UNIMPLEMENTED" }
+sub packages_inside {
+    my $self = shift;
+
+    my $mod_file = $self->file;
+
+    # The 2>&1 bit isn't entirely portable.
+    my @packs = `$^X "-Ilib" "-MO=Module::Info,packages" $mod_file 2>&1`;
+
+    chomp @packs;
+    @packs = grep !/syntax OK$/, @packs;
+
+    my %packs;
+    @packs{@packs} = (1) x @packs;
+
+    return keys %packs;
+}
 
 =item B<modules_used> *UNIMPLEMENTED*
 
@@ -321,6 +340,21 @@ is a code ref to the subroutine.
 Note this only catches simple C<sub foo {...}> subroutine
 declarations.  Anonymous, autoloaded or eval'd subroutines are not
 listed.
+
+=cut
+
+sub subroutines {
+    die "UNIMPLEMENTED";
+
+    my($self) = shift;
+
+    my $mod_file = $self->file;
+    my @subs = `$^X "-Ilib" "-MO=Module::Info,subroutines" $mod_file 2>&1`;
+
+    chomp @subs;
+    return grep !/syntax OK$/, @subs;
+}
+
 
 =back
 

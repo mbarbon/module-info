@@ -23,11 +23,12 @@ are upgrading from a version older than $LAST_API_CHANGE.
 CHANGE_WARN
 }
 
+my %prereqs = ( File::Spec => 0.8 );     # need rel2abs
+
 WriteMakefile(
     NAME            => $PACKAGE,
     VERSION_FROM    => "lib/$PACKAGE_FILE.pm", # finds $VERSION
-    PREREQ_PM       => { File::Spec => 0.8,     # need rel2abs
-                       },
+    PREREQ_PM       => \%prereqs,
     'dist'          => { COMPRESS   => 'gzip -9',
                          SUFFIX     => '.gz',
                          DIST_DEFAULT   => 'all tardist',
