@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 51;
 use Config;
 
-my $Mod_Info_VERSION = '0.12';
+my $Mod_Info_VERSION = '0.13';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -26,6 +26,7 @@ my @expected_subs = qw(
                        _file2mod          
                        subroutines        
                        superclasses
+                       _is_win95
                        _call_B
                        subroutines_called
                        dynamic_method_calls
@@ -60,8 +61,9 @@ SKIP: {
                [sort @expected_subs],  '   names' );
     
     my @mods = $mod_info->modules_used;
-    is( @mods, 5,           'Found all modules used' );
-    is_deeply( [sort @mods], [sort qw(strict File::Spec Config Carp vars)],
+    is( @mods, 6,           'Found all modules used' );
+    is_deeply( [sort @mods], [sort qw(strict File::Spec Config 
+                                      Carp IPC::Open3 vars)],
                             '    the right ones' );
 }
 
@@ -80,7 +82,8 @@ ok( !$mod_info->is_core,                    '    not a core module' );
 
 # Grab the core version of Text::Soundex and hope it hasn't been
 # deleted.
-@core_inc = ($Config{installarchlib}, $Config{installprivlib});
+@core_inc = map { File::Spec->canonpath($_) }
+  ($Config{installarchlib}, $Config{installprivlib});
 $mod_info = Module::Info->new_from_module('Text::Soundex', @core_inc);
 is( $mod_info->name, 'Text::Soundex',       '    name()' );
 
@@ -138,7 +141,7 @@ SKIP: {
     ok( eq_set(\@packages, [qw(Foo Bar)]),   "  they're right" );
 
     my %subs = $module->subroutines;
-    is( keys %subs, 1,                          'Found one subroutine' );
+    is( keys %subs, 2,                          'Found two subroutine' );
     ok( exists $subs{'Foo::wibble'},            '   its right' );
 
     my($start, $end) = @{$subs{'Foo::wibble'}}{qw(start end)};
@@ -147,9 +150,9 @@ SKIP: {
     is( $end,   21,           '   end line'   );
 
     my @mods = $module->modules_used;
-    is( @mods, 5,           'modules_used' );
+    is( @mods, 7,           'modules_used' );
     is_deeply( [sort @mods], 
-               [sort qw(strict vars Exporter t/lib/Foo.pm lib)] );
+               [sort qw(strict vars Carp Exporter t/lib/Bar.pm t/lib/Foo.pm lib)] );
 
     $module->name('Foo');
     my @isa = $module->superclasses;
@@ -217,7 +220,13 @@ SKIP: {
                            class    => undef,
                            type     => 'object method',
                            name     => 'wibble'
-                          }
+                          },
+                          {
+                           line     => 51,
+                           class    => undef,
+                           type     => 'function',
+                           name     => 'croak'
+                          },
                          );
     is_deeply(\@calls, \@expected_calls, 'subroutines_called');
     is_deeply([$module->dynamic_method_calls],

@@ -45,3 +45,15 @@ use 5;
 use lib qw(blahbityblahblah);
 
 eval "require Text::Soundex";
+
+sub croak {
+    require Carp;
+    Carp::croak(@_);
+}
+
+BEGIN {
+    require 't/lib/Bar.pm';
+}
+
+my $mod = 't/lib/Bar.pm';
+require $mod;
