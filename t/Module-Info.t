@@ -4,7 +4,8 @@ use lib qw(t/lib);
 use Test::More tests => 58;
 use Config;
 
-my $Mod_Info_VERSION = '0.24';
+my $Mod_Info_VERSION = '0.25';
+my $Mod_Info_Pack_VERSION = '0.250';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -63,7 +64,7 @@ SKIP: {
 
     my %versions = $mod_info->package_versions;
     is( keys %versions, 1,                '1 package with package_versions()');
-    is( $versions{Module::Info}, $Mod_Info_VERSION, 'version is correct');
+    is( $versions{Module::Info}, $Mod_Info_Pack_VERSION, 'version is correct');
 
     my %subs = $mod_info->subroutines;
     is( keys %subs, @expected_subs,    'Found all the subroutines' );
@@ -165,16 +166,18 @@ SKIP: {
     is( $end,   22,           '   end line'   );
 
     my @mods = $module->modules_used;
-    is( @mods, 7,           'modules_used' );
-    is_deeply( [sort @mods], 
-               [sort qw(strict vars Carp Exporter t/lib/Bar.pm t/lib/Foo.pm lib)] );
+    is( @mods, 8,           'modules_used' );
+    is_deeply( [sort @mods],
+               [sort qw(strict vars Carp Exporter t/lib/Bar.pm t/lib/NotHere.pm
+                        t/lib/Foo.pm lib)] );
 
     $module->name('Foo');
     my @isa = $module->superclasses;
     is( @isa, 3,            'isa' );
     is_deeply( [sort @isa], [sort qw(This That What::Ever)] );
 
-    my @calls = $module->subroutines_called;
+    my @calls = sort { $a->{line} <=> $b->{line} }
+                     $module->subroutines_called;
 
     my $startline = 25;
     my @expected_calls = ({
@@ -238,10 +241,22 @@ SKIP: {
                            name     => 'wibble'
                           },
                           {
-                           line     => $startline + 27,
+                           line     => $startline + 17,
+                           class    => undef,
+                           type     => 'function',
+                           name     => 'wibble'
+                          },
+                          {
+                           line     => $startline + 30,
                            class    => undef,
                            type     => 'function',
                            name     => 'croak'
+                          },
+                          {
+                           line     => $startline + 33,
+                           class    => undef,
+                           type     => 'function',
+                           name     => 'wibble'
                           },
                          );
     is_deeply(\@calls, \@expected_calls, 'subroutines_called');

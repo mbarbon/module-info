@@ -42,10 +42,43 @@ sub filtered_roots {
 }
 
 
+=head2 roots_cv_pairs_recursive
+
+Returns a list of pairs, each containing a root with the relative
+B::CV object; this list includes B::main_root/cv and all anonymous
+subroutines defined therein.
+
+=cut
+
+sub roots_cv_pairs_recursive {
+    my @queue = roots_cv_pairs();
+    my @roots;
+
+    my $anon_sub = sub {
+        B::class($_[0]) ne 'NULL' && $_[0]->name eq 'anoncode';
+    };
+
+    my $anon_check = sub {
+        my $cv = const_sv($_[0]);
+        push @queue, [ $cv->ROOT, $cv ];
+    };
+
+    while( @queue ) {
+        my $p = shift @queue;
+        push @roots, $p;
+        local $CurCV = $p->[1];
+        walkoptree_filtered($p->[0],
+                            $anon_sub,
+                            $anon_check );
+    }
+
+    return @roots;
+}
+
 =head2 roots_cv_pairs
 
 Returns a list of pairs, each containing a root with the relative
-B::CV object; this list includes B::main_root/cv.
+B::CV object for named subroutines; this list includes B::main_root/cv.
 
 =cut
 
@@ -124,7 +157,7 @@ my %modes = (
                  }
 
                  {
-                     foreach my $p ( roots_cv_pairs ) {
+                     foreach my $p ( roots_cv_pairs_recursive ) {
                          local $CurCV = $p->[1];
                          walkoptree_filtered($p->[0],
                                      \&is_require,
@@ -134,8 +167,7 @@ my %modes = (
                  }
              },
              subs_called => sub {
-                 my %roots = filtered_roots;
-                 foreach my $p ( roots_cv_pairs ) {
+                 foreach my $p ( roots_cv_pairs_recursive ) {
                      local $CurCV = $p->[1];
                      walkoptree_filtered($p->[0],
                                          \&sub_call,

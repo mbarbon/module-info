@@ -38,6 +38,9 @@ Foo->$method('bar');
     $Foo::obj = bless {};
     $Foo::obj->wibble(main::STDOUT);
 }
+my $_private = sub {
+    wibble('call inside anonymous subroutine');
+};
 
 require 5.004;
 use 5.004;
@@ -50,6 +53,11 @@ eval "require Text::Soundex";
 sub croak {
     require Carp;
     Carp::croak(@_);
+
+    return sub {
+        main::wibble('call insde anon sub inside sub');
+        require 't/lib/NotHere.pm';
+    }
 }
 
 BEGIN {

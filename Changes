@@ -1,8 +1,14 @@
+0.25  Sun Jul 11 15:29:31     2004
+    - Fix test to work around modules_required reporting
+      different version numbers (0.25 vs. 0.250) under bleadperl.
+    + Report subroutine/method calls and modules required
+       inside anonymous subroutines.
+
 0.24  Wed Oct  1 11:45:45 CEST 2003
     - Fixed version reported by modules_required for bleadperl.
 
 0.23  Thu Sep  4 17:44:52 CEST 2003
-    - Fixes for modules other tahn the one being examined
+    - Fixes for modules other than the one being examined
       loaded from paths containing spaces.
 
 0.22  Mon Aug 18 14:44:23 CEST 2003
