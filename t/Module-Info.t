@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 74;
 use Config;
 
-my $Mod_Info_VERSION = 0.10;
+my $Mod_Info_VERSION = '0.10';
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
