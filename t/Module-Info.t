@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 68;
+use Test::More tests => 74;
 use Config;
 
-my $Mod_Info_VERSION = 0.07;
+my $Mod_Info_VERSION = 0.08;
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
@@ -23,7 +23,7 @@ is( $mod_info->file, File::Spec->rel2abs('lib/Module/Info.pm'),
 ok( !$mod_info->is_core,                    '    not a core module' );
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 30 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 34 unless $] >= 5.006001;
 
     my %expected_subs = (
                          new_from_file          => [63,  73],
@@ -37,8 +37,9 @@ SKIP: {
                          file                   => [252, 254],
                          is_core                => [270, 272],
                          packages_inside        => [304, 317],
-                         modules_used           => [333, 341],
-                         subroutines            => [378, 386],
+                         modules_used           => [333, 353],
+                         _file2mod              => [357, 360],
+                         subroutines            => [398, 406],
                         );
     %expected_subs = map { ("Module::Info::$_" => $expected_subs{$_}) } 
                      keys %expected_subs;
@@ -56,6 +57,11 @@ SKIP: {
         is( $expected_subs{$name}[0], $subs{$name}{start},  "$name start" );
         is( $expected_subs{$name}[1], $subs{$name}{end},    "$name end" );
     }
+
+    my @mods = $mod_info->modules_used;
+    is( @mods, 4,           'Found all modules used' );
+    is_deeply( [sort @mods], [sort qw(strict File::Spec Config vars)],
+                            '    the right ones' );
 }
 
 
@@ -123,7 +129,7 @@ ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
 
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 6 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 8 unless $] >= 5.006001;
 
     my $module = Module::Info->new_from_file('t/lib/Foo.pm');
     my @packages = $module->packages_inside;
@@ -136,6 +142,10 @@ SKIP: {
 
     my($start, $end) = @{$subs{'Foo::wibble'}}{qw(start end)};
     print "# start $start, end $end\n";
-    is( $start, 13,           '   start line' );
-    is( $end,   14,           '   end line'   );
+    is( $start, 17,           '   start line' );
+    is( $end,   18,           '   end line'   );
+
+    my @mods = $module->modules_used;
+    is( @mods, 3,           'modules_used' );
+    is_deeply( [sort @mods], [sort qw(strict Exporter lib/Foo.pm)] );
 }
