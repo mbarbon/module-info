@@ -43,7 +43,7 @@ is( $mod_info->file, File::Spec->rel2abs('lib/Module/Info.pm'),
 ok( !$mod_info->is_core,                    '    not a core module' );
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 34 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 6 unless $] >= 5.006001;
 
     @expected_subs = map "Module::Info::$_", @expected_subs;
 
@@ -127,7 +127,7 @@ ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
 
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 8 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 12 unless $] >= 5.006001;
 
     my $module = Module::Info->new_from_file('t/lib/Foo.pm');
     my @packages = $module->packages_inside;
