@@ -12,7 +12,7 @@ our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     opgrep
                    );
 
-our $VERSION = 0.02_01;
+our $VERSION = 0.02_02;
 
 use B qw(main_start main_root walksymtable class OPf_KIDS);
 
@@ -217,22 +217,29 @@ they're all rather difficult to use, requiring you to inject methods
 into the C<B::OP> class. This is a very simple op tree walker with
 more expected semantics.
 
-All the C<walk> functions set C<B::Utils::file> and C<B::Utils::line>
+All the C<walk> functions set C<$B::Utils::file> and C<$B::Utils::line>
 to the appropriate values of file and line number in the program
 being examined.
 
 =cut
 
-our ($file, $line) = ("__none__",0);
+our ($file, $line);
 
 sub walkoptree_simple {
+    ($file, $line) = (undef,undef);
+
+    _walkoptree_simple(@_);
+}
+
+sub _walkoptree_simple {
     my ($op, $callback, $data) = @_;
+
     ($file, $line) = ($op->file, $op->line) if $op->isa("B::COP");
     $callback->($op,$data);
     if ($$op && ($op->flags & OPf_KIDS)) {
         my $kid;
         for ($kid = $op->first; $$kid; $kid = $kid->sibling) {
-            walkoptree_simple($kid, $callback, $data);
+            _walkoptree_simple($kid, $callback, $data);
         }
     }
 }
@@ -247,6 +254,12 @@ for building your own filters.
 =cut
 
 sub walkoptree_filtered {
+    ($file, $line) = (undef,undef);    
+    
+    _walkoptree_filtered(@_);
+}
+
+sub _walkoptree_filtered {
     my ($op, $filter, $callback, $data) = @_;
     ($file, $line) = ($op->file, $op->line) if $op->isa("B::COP");
     $callback->($op,$data) if $filter->($op);
