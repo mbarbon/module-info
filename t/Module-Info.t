@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 74;
 use Config;
 
-my $Mod_Info_VERSION = 0.08;
+my $Mod_Info_VERSION = 0.10;
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
@@ -26,20 +26,20 @@ SKIP: {
     skip "Only works on 5.6.1 and up.", 34 unless $] >= 5.006001;
 
     my %expected_subs = (
-                         new_from_file          => [63,  73],
-                         new_from_module        => [90,  91],
-                         new_from_loaded        => [104, 114],
-                         all_installed          => [129, 130],
-                         _find_all_installed    => [135, 156],
-                         name                   => [179, 180],
-                         version                => [194, 224],
-                         inc_dir                => [238, 240],
-                         file                   => [252, 254],
-                         is_core                => [270, 272],
-                         packages_inside        => [304, 317],
-                         modules_used           => [333, 353],
-                         _file2mod              => [357, 360],
-                         subroutines            => [398, 406],
+                         new_from_file          => [64,  74],
+                         new_from_module        => [91,  92],
+                         new_from_loaded        => [105, 115],
+                         all_installed          => [130, 131],
+                         _find_all_installed    => [136, 157],
+                         name                   => [180, 181],
+                         version                => [195, 225],
+                         inc_dir                => [239, 241],
+                         file                   => [253, 255],
+                         is_core                => [271, 273],
+                         packages_inside        => [305, 318],
+                         modules_used           => [334, 354],
+                         _file2mod              => [358, 361],
+                         subroutines            => [399, 407],
                         );
     %expected_subs = map { ("Module::Info::$_" => $expected_subs{$_}) } 
                      keys %expected_subs;
@@ -146,6 +146,6 @@ SKIP: {
     is( $end,   18,           '   end line'   );
 
     my @mods = $module->modules_used;
-    is( @mods, 3,           'modules_used' );
-    is_deeply( [sort @mods], [sort qw(strict Exporter lib/Foo.pm)] );
+    is( @mods, 4,           'modules_used' );
+    is_deeply( [sort @mods], [sort qw(strict Exporter lib/Foo.pm lib)] );
 }
