@@ -1,3 +1,7 @@
+0.18  Sat Mar  8 17:44:24 CET 2003
+    + Upgraded bundled B::Utils to 0.04 + Schwern patches.
+    - Fixed detection of require() statements in non-trivial BEGIN blocks.
+
 0.17  Sun Mar  2 11:01:55 CET 2003
     + Added module_info.
     - Fixed a warning when enumerating packages.
