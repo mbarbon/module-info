@@ -261,8 +261,8 @@ sub show_require {
 
             my $sv = const_sv($kid);
             return unless defined $sv && !$sv->isa('B::NULL');
-            $name   = $sv->isa("B::PV") ? $sv->PV : '';
-            $name ||= $sv->isa("B::NV") ? $sv->NV : 0;
+            $name   = $sv->isa("B::NV") ? $sv->NV : 0;
+            $name ||= $sv->isa("B::PV") ? $sv->PV : '';
             $name ||= $sv->IV;
         }       
         else {
