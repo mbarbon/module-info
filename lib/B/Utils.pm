@@ -9,35 +9,28 @@ our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     carp croak
                     opgrep
                    );
-
-# Avoid calling Exporter so we don't add too much to the optree
-# ourselves.
 sub import {
-    my $pack = shift;
-    my @exports = @_;
-    my $caller = caller;
-    my %EOK = map {$_ => 1} @EXPORT_OK;
-
-    for (@exports) {   
-        unless ($EOK{$_}) {
-            require Carp;
-            Carp::croak(qq{"$_" is not exported by the $pack module});
-        }
-        no strict 'refs';
-        *{"$caller\::$_"} = \&{"$pack\::$_"};
+  my $pack = shift;
+  my @exports = @_;
+  my $caller = caller;
+  my %EOK = map {$_ => 1} @EXPORT_OK;
+  for (@exports) {
+    unless ($EOK{$_}) {
+      require Carp;
+      Carp::croak(qq{"$_" is not exported by the $pack module});
     }
+    no strict 'refs';
+    *{"$caller\::$_"} = \&{"$pack\::$_"};
+  }
 }
 
-
-our $VERSION = 0.02_06;
+our $VERSION = '0.04_01'; # 0.04 with some Schwern patches
 
 use B qw(main_start main_root walksymtable class OPf_KIDS);
 
 my (%starts, %roots, @anon_subs);
 
-our @bad_stashes = qw(B Carp DB Exporter warnings Cwd Config CORE
-                      blib strict DynaLoader vars XSLoader AutoLoader
-                      base);
+our @bad_stashes = qw(B Carp DB Exporter warnings Cwd Config CORE blib strict DynaLoader vars XSLoader AutoLoader base);
 
 { my $_subsdone=0;
 sub _init { # To ensure runtimeness.
@@ -136,7 +129,7 @@ sub B::OP::oldname {
 
 =item C<< $op->kids >>
 
-Returns an array of all this op's non-null children.
+Returns an array of all this op's non-null children, in order.
 
 =cut
 
@@ -145,8 +138,7 @@ sub B::OP::kids {
     my @rv = ();
 
     foreach my $type (qw(first last other)) {
-        no strict 'refs';
-        my $kid = &{"safe_$type"}($op);
+        my $kid = $op->$type();
         next if !$kid || class($kid) eq 'NULL';
         if( $kid->name eq 'null' ) {
             push @rv, $kid->kids;
@@ -174,13 +166,33 @@ sub B::OP::kids {
     return @rv, @more_rv;
 }
 
+
+=item C<< $op->first >>
+
+=item C<< $op->last >>
+
+=item C<< $op->other >>
+
+Normally if you call first, last or other on anything which is not an
+UNOP, BINOP or LOGOP respectivly it will die.  This leads to lots of
+code like:
+
+    $op->first if $op->can('first');
+
+B::Utils provides every op with first, last and other methods which
+will simply return nothing if it isn't relevent.
+
+=cut
+
 foreach my $type (qw(first last other)) {
     no strict 'refs';
-    *{'safe_'.$type} = sub {
+    *{'B::OP::'.$type} = sub {
         my($op) = shift;
-        if( $op->can($type) ) {
-            my $kid = $op->$type;
-            return $kid if $kid;
+        if( $op->can("SUPER::$type") ) {
+            return $op->$type();
+        }
+        else {
+            return;
         }
     }
 }
@@ -269,23 +281,27 @@ they're all rather difficult to use, requiring you to inject methods
 into the C<B::OP> class. This is a very simple op tree walker with
 more expected semantics.
 
+The &callback is called at each op with the op itself passed in as the
+first argument and any additional $data as the second.
+
 All the C<walk> functions set C<$B::Utils::file> and C<$B::Utils::line>
 to the appropriate values of file and line number in the program
-being examined.
+being examined.  Since only COPs contain this information it may be
+unavailable in the first few callback calls.
 
 =cut
 
 our ($file, $line);
 
+# Make sure we reset $file and $line between runs.
 sub walkoptree_simple {
-    ($file, $line) = (undef,undef);
+    ($file, $line) = ('__none__', 0);
 
     _walkoptree_simple(@_);
 }
 
 sub _walkoptree_simple {
     my ($op, $callback, $data) = @_;
-
     ($file, $line) = ($op->file, $op->line) if $op->isa("B::COP");
     $callback->($op,$data);
     if ($$op && ($op->flags & OPf_KIDS)) {
@@ -306,7 +322,7 @@ for building your own filters.
 =cut
 
 sub walkoptree_filtered {
-    ($file, $line) = (undef,undef);    
+    ($file, $line) = ('__none__', 0);
     
     _walkoptree_filtered(@_);
 }
@@ -380,8 +396,8 @@ sub _preparewarn {
     $args .= " at $file line $line.\n" unless substr($args, length($args) -1) eq "\n";
 }
 
-sub croak (@) { CORE::die(_preparewarn(@_)) }
 sub carp  (@) { CORE::warn(_preparewarn(@_)) }
+sub croak (@) { CORE::die(_preparewarn(@_)) }
 
 =item opgrep(\%conditions, @ops)
 
@@ -428,21 +444,21 @@ sub opgrep {
     my ($cref, @ops) = @_;
     my %conds = %$cref;
     my @rv = ();
-    my $o;
-    OPLOOP: for $o (@ops) {
+
+    OPLOOP: for my $o (grep defined, @ops) {
         # First, let's skim off ops of the wrong type.
-        for (qw(first other last pmreplroot pmreplstart pmnext pmflags pmpermflags)) {
-            next OPLOOP if exists $conds{$_} and !$o->can($_);
+        for my $type (qw(first other last pmreplroot pmreplstart pmnext pmflags pmpermflags)) {
+            next OPLOOP if exists $conds{$type} and !$o->can($type);
         }
 
-        for my $test (qw(name targ type seq flags private pmflags pmpermflags))
-        {
+        for my $test (qw(name targ type seq flags private pmflags pmpermflags)) {
             next unless exists $conds{$test};
             next OPLOOP unless $o->can($test);
 
             my @conds = ref $conds{$test} ? @{$conds{$test}} : $conds{$test};
+
             if ($conds[0] eq "!") {
-                shift @conds;
+                my @conds = @{$conds{$test}}; shift @conds;
                 next OPLOOP if grep {$o->$test eq $_} @conds;
             } else {
                 next OPLOOP unless grep {$o->$test eq $_} @conds;
@@ -452,7 +468,6 @@ sub opgrep {
         for my $neighbour (qw(first other last sibling next pmreplroot pmreplstart pmnext)) {
             next unless exists $conds{$neighbour};
             # We know it can, because we tested that above
-
             # Recurse, recurse!
             next OPLOOP unless opgrep($conds{$neighbour}, $o->$neighbour);
         }
