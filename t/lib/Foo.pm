@@ -2,7 +2,10 @@ package Foo;
 
 use strict;
 require Exporter;
-require "lib/Foo.pm";
+require "t/lib/Foo.pm";
+use vars qw(@ISA);
+
+@ISA = qw(This That What::Ever);
 
 my $foo = 42;
 
@@ -16,6 +19,22 @@ sub wibble {
     package Wibble;
     $foo = 42;
     return 66;
+}
+
+wibble('this is the function call');
+{ no strict 'refs'; &{'wibble'}('this is a symref function call'); }
+Foo->wibble('bar');
+my $obj = bless {};
+$obj->wibble('bar');
+my $method = 'wibble';
+Foo->$method;
+$obj->$method;
+$obj->$method('bar');
+Foo->$method('bar');
+{
+    no strict 'subs';
+    $Foo::obj = bless {};
+    $Foo::obj->wibble(main::STDOUT);
 }
 
 require 5.004;
