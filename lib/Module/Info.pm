@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.26';
+$VERSION = '0.27';
 
 
 =head1 NAME
@@ -122,7 +122,7 @@ sub new_from_loaded {
     my $mod_file = join('/', split('::', $name)) . '.pm';
     my $filepath = $INC{$mod_file} || '';
 
-    my $module = Module::Info->new_from_file($filepath);
+    my $module = Module::Info->new_from_file($filepath) or return;
     $module->{name} = $name;
     ($module->{dir} = $filepath) =~ s|/?\Q$mod_file\E$||;
     $module->{dir} = File::Spec->rel2abs($module->{dir});
@@ -213,6 +213,7 @@ ExtUtils::MakeMaker and all caveats therein apply.
 # Thieved from ExtUtils::MM_Unix 1.12603
 sub version {
     my($self) = shift;
+    local($_, *MOD);
 
     my $parsefile = $self->file;
 

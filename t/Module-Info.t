@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 58;
+use Test::More tests => 59;
 use Config;
 
-my $Mod_Info_VERSION = '0.26';
-my $Mod_Info_Pack_VERSION = $] >= 5.009002 ? '0.260' : '0.26';
+my $Mod_Info_VERSION = '0.27';
+my $Mod_Info_Pack_VERSION = $] >= 5.009002 ? '0.270' : '0.27';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -142,6 +142,8 @@ ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
                     "  they're all Module::Info objects"
   );
 
+$mod_info = Module::Info->new_from_loaded('this_module_does_not_exist');
+is( $mod_info, undef, 'new_from_loaded' );
 
 SKIP: {
     skip "Only works on 5.6.1 and up.", 17 unless $] >= 5.006001;

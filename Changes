@@ -1,7 +1,13 @@
-0.26  Sun Jul 11 17:15:36     2004
+0.27  Fri Mar  4 07:56:58 CET 2005
+    - Added missing localization of $_ in version().
+      (thanks to Boris Zentner)
+    - Fixed new_from_loaded() to return nothing when the module
+      is in fact not loaded. (thanks to Johan Lodin)
+
+0.26  Sun Jul 11 17:15:36 CEST 2004
     - Fix tests for Perl 5.8.x and 5.6.x.
 
-0.25  Sun Jul 11 16:36:11     2004
+0.25  Sun Jul 11 16:36:11 CEST 2004
     - Fix test to work around modules_required reporting
       different version numbers (0.25 vs. 0.250) under bleadperl.
     + Report subroutine/method calls and modules required
