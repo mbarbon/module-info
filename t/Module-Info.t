@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 51;
 use Config;
 
-my $Mod_Info_VERSION = '0.11';
+my $Mod_Info_VERSION = '0.12';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join ':', 'blib/lib', @old5lib;
