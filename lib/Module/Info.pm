@@ -5,7 +5,7 @@ use File::Spec;
 use Config;
 
 use vars qw($VERSION);
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 
 =head1 NAME
@@ -210,7 +210,7 @@ sub version {
                           $_
                       }; \$$2
         };
-        no warnings;
+        local $^W = 0;
         $result = eval($eval);
         warn "Could not eval '$eval' in $parsefile: $@" if $@;
         $result = "undef" unless defined $result;
