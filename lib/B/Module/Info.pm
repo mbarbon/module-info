@@ -95,23 +95,31 @@ my %modes = (
                      next if $lineseq->name ne 'lineseq';
 
                      my $req_op = $lineseq->first->sibling;
-                     next if $req_op->name ne 'require';
+                     if( $req_op->name eq 'require' ) {
+                         my $module;
+                         if( $req_op->first->private & B::OPpCONST_BARE ) {
+                             $module = const_sv($req_op->first)->PV;
+                             $module =~ s[/][::]g;
+                             $module =~ s/.pm$//;
+                         }
+                         else {
+                             # if it is not bare it can't be an "use"
+                             show_require($req_op);
+                             next;
+                         }
 
-                     my $module;
-                     if( $req_op->first->private & B::OPpCONST_BARE ) {
-                         $module = const_sv($req_op->first)->PV;
-                         $module =~ s[/][::]g;
-                         $module =~ s/.pm$//;
+                         printf "use %s at %s line %s\n",
+                             $module,
+                             $begin_cv->FILE, 
+                             $begin_cv->START->line;
                      }
+                     # it can't be an use, scan the optree
                      else {
-                         # if it is not bare it can't be an "use"
-                         show_require($req_op);
-                         next;
+                         walkoptree_filtered($root,
+                                     \&is_require,
+                                     \&show_require,
+                                    );
                      }
-
-                     printf "use %s at %s line %s\n", $module,
-                                                      $begin_cv->FILE, 
-                                                      $begin_cv->START->line;
                  }
 
                  {
@@ -208,6 +216,7 @@ sub padval {
 
 
 sub sub_info {
+    $File = undef if $File eq '__none__';
     $File  ||= $B::Utils::file;
     $Start = $B::Utils::line if !$Start || $B::Utils::line < $Start;
     $End   = $B::Utils::line if !$End   || $B::Utils::line > $End;

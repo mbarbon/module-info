@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 51;
+use Test::More tests => 53;
 use Config;
 
-my $Mod_Info_VERSION = '0.17';
+my $Mod_Info_VERSION = '0.18';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -235,4 +235,10 @@ SKIP: {
     is_deeply(\@calls, \@expected_calls, 'subroutines_called');
     is_deeply([$module->dynamic_method_calls],
               [grep $_->{type} =~ /dynamic/, @expected_calls]);
+
+    $module = Module::Info->new_from_file('t/lib/Bar.pm');
+    @mods   = $module->modules_used;
+    is( @mods, 3, 'modules_used with complex BEGIN block' );
+    is_deeply( sort @mods,
+               (sort qw(Cwd Carp strict)) );
 }
