@@ -1,6 +1,7 @@
 Changes
 MANIFEST
 Makefile.PL
+bin/module_info
 bin/pfunc
 lib/B/Module/Info.pm
 lib/B/Utils.pm

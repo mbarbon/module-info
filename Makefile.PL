@@ -33,7 +33,7 @@ WriteMakefile(
                          SUFFIX     => '.gz',
                          DIST_DEFAULT   => 'all tardist',
                        },
-    EXE_FILES       => [qw(bin/pfunc)],
+    EXE_FILES       => [qw(bin/pfunc bin/module_info)],
 );
 
 
