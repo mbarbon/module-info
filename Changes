@@ -1,3 +1,8 @@
+0.22  Mon Aug 18 14:44:23 CEST 2003
+    + Fixed reporting of static method calls in Perl 5.8.1 RC4
+    - Fixed reporting of module versions in Perl 5.8.1 RC4 when
+      "use Foo 1.2.3;" was used
+
 0.21  Fri Aug 15 18:48:53 CEST 2003
     - Added licensing information to Module::Info POD
     + Added modules_required(). Original patch by Martyn J. Pearce,
