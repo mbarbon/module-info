@@ -1,21 +1,41 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 74;
+use Test::More tests => 51;
 use Config;
 
-my $Mod_Info_VERSION = '0.10';
+my $Mod_Info_VERSION = '0.11';
 
 use_ok('Module::Info');
-can_ok('Module::Info', qw(new_from_file new_from_module all_installed
-                          name version inc_dir file is_core
-                          packages_inside modules_used
-                         ));
+my @expected_subs = qw(
+                       new_from_file
+                       new_from_module
+                       new_from_loaded
+                       all_installed
+                       _find_all_installed
+                       name               
+                       version            
+                       inc_dir            
+                       file               
+                       is_core            
+                       packages_inside    
+                       modules_used       
+                       _file2mod          
+                       subroutines        
+                       superclasses
+                       _call_B
+                       subroutines_called
+                       dynamic_method_calls
+                      );
+
+can_ok('Module::Info', @expected_subs);
 
 my $mod_info = Module::Info->new_from_file('lib/Module/Info.pm');
 isa_ok($mod_info, 'Module::Info', 'new_from_file');
 
 ok( !$mod_info->name,                       '    has no name' );
+$mod_info->name('Module::Info');
+ok( $mod_info->name,                        '    name set' );
 is( $mod_info->version, $Mod_Info_VERSION,  '    version()' );
 ok( !$mod_info->inc_dir,                    '    has no inc_dir' );
 is( $mod_info->file, File::Spec->rel2abs('lib/Module/Info.pm'),
@@ -25,42 +45,20 @@ ok( !$mod_info->is_core,                    '    not a core module' );
 SKIP: {
     skip "Only works on 5.6.1 and up.", 34 unless $] >= 5.006001;
 
-    my %expected_subs = (
-                         new_from_file          => [64,  74],
-                         new_from_module        => [91,  92],
-                         new_from_loaded        => [105, 115],
-                         all_installed          => [130, 131],
-                         _find_all_installed    => [136, 157],
-                         name                   => [180, 181],
-                         version                => [195, 225],
-                         inc_dir                => [239, 241],
-                         file                   => [253, 255],
-                         is_core                => [271, 273],
-                         packages_inside        => [305, 318],
-                         modules_used           => [334, 354],
-                         _file2mod              => [358, 361],
-                         subroutines            => [399, 407],
-                        );
-    %expected_subs = map { ("Module::Info::$_" => $expected_subs{$_}) } 
-                     keys %expected_subs;
+    @expected_subs = map "Module::Info::$_", @expected_subs;
 
     my @packages = $mod_info->packages_inside;
     is( @packages, 1,                   'Found a single package inside' );
     is( $packages[0], 'Module::Info',   '  and its what we want' );
 
     my %subs = $mod_info->subroutines;
-    is( keys %subs, keys %expected_subs,    'Found all the subroutines' );
+    is( keys %subs, @expected_subs,    'Found all the subroutines' );
     is_deeply( [sort keys %subs], 
-               [sort keys %expected_subs],  '   names' );
+               [sort @expected_subs],  '   names' );
     
-    while( my($name, $info) = each %expected_subs ) {
-        is( $expected_subs{$name}[0], $subs{$name}{start},  "$name start" );
-        is( $expected_subs{$name}[1], $subs{$name}{end},    "$name end" );
-    }
-
     my @mods = $mod_info->modules_used;
-    is( @mods, 4,           'Found all modules used' );
-    is_deeply( [sort @mods], [sort qw(strict File::Spec Config vars)],
+    is( @mods, 5,           'Found all modules used' );
+    is_deeply( [sort @mods], [sort qw(strict File::Spec Config Carp vars)],
                             '    the right ones' );
 }
 
@@ -142,10 +140,77 @@ SKIP: {
 
     my($start, $end) = @{$subs{'Foo::wibble'}}{qw(start end)};
     print "# start $start, end $end\n";
-    is( $start, 17,           '   start line' );
-    is( $end,   18,           '   end line'   );
+    is( $start, 20,           '   start line' );
+    is( $end,   21,           '   end line'   );
 
     my @mods = $module->modules_used;
-    is( @mods, 4,           'modules_used' );
-    is_deeply( [sort @mods], [sort qw(strict Exporter lib/Foo.pm lib)] );
+    is( @mods, 5,           'modules_used' );
+    is_deeply( [sort @mods], 
+               [sort qw(strict vars Exporter t/lib/Foo.pm lib)] );
+
+    $module->name('Foo');
+    my @isa = $module->superclasses;
+    is( @isa, 3,            'isa' );
+    is_deeply( [sort @isa], [sort qw(This That What::Ever)] );
+
+    my @calls = $module->subroutines_called;
+
+    my @expected_calls = ({
+                           line     => 24,
+                           class    => undef,
+                           type     => 'function',
+                           name     => 'wibble'
+                          },
+                          {
+                           line     => 25,
+                           class    => undef,
+                           type     => 'function',
+                           name     => undef,
+                          },
+                          {
+                           line     => 26,
+                           class    => 'Foo',
+                           type     => 'class method',
+                           name     => 'wibble',
+                          },
+                          {
+                           line     => 28,
+                           class    => undef,
+                           type     => 'object method',
+                           name     => 'wibble',
+                          },
+                          {
+                           line     => 30,
+                           class    => 'Foo',
+                           type     => 'dynamic class method',
+                           name     => undef,
+                          },
+                          {
+                           line     => 31,
+                           class    => undef,
+                           type     => 'dynamic object method',
+                           name     => undef,
+                          },
+                          {
+                           line     => 32,
+                           class    => undef,
+                           type     => 'dynamic object method',
+                           name     => undef,
+                          },
+                          {
+                           line     => 33,
+                           class    => 'Foo',
+                           type     => 'dynamic class method',
+                           name     => undef,
+                          },
+                          {
+                           line     => 37,
+                           class    => undef,
+                           type     => 'object method',
+                           name     => 'wibble'
+                          }
+                         );
+    is_deeply(\@calls, \@expected_calls, 'subroutines_called');
+    is_deeply([$module->dynamic_method_calls],
+              [grep $_->{type} =~ /dynamic/, @expected_calls]);
 }
