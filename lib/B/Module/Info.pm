@@ -1,6 +1,6 @@
 package B::Module::Info;
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use B;
 use B::Utils qw(walkoptree_filtered walkoptree_simple
@@ -19,6 +19,16 @@ sub state_call {
 }
 
 
+sub filtered_roots {
+    my %roots = all_roots;
+    my %filtered_roots = ();
+    while( my($name, $op) = each %roots ) {
+        next if $name eq '__MAIN__';
+        $filtered_roots{$name} = $op;
+    }
+    return %filtered_roots;
+}
+
 my %modes = (
              packages => sub { 
                  walkoptree_filtered(B::main_root,
@@ -26,9 +36,8 @@ my %modes = (
                                      \&state_call );
              },
              subroutines => sub {
-                 my %roots = all_roots;
+                 my %roots = filtered_roots();
                  while( my($name, $op) = each %roots ) {
-                     next if $name eq '__MAIN__';
                      local($File, $Start, $End);
                      walkoptree_simple($op, \&sub_info);
                      print "$name at $File from $Start to $End\n";
@@ -67,6 +76,14 @@ my %modes = (
                                      \&show_require,
                                     );
              },
+             subs_called => sub {
+                 my %roots = filtered_roots;
+                 foreach my $op (B::main_root, values %roots) {
+                     walkoptree_filtered($op,
+                                         \&sub_call,
+                                         \&sub_check );
+                 }
+             }
             );
 
 
@@ -178,7 +195,10 @@ sub show_require {
             }
 
             my $sv = $kid->sv;
-            $name = $sv->isa("B::PV") ? $sv->PV : $sv->NV, "\n";
+            $name = $sv->isa("B::PV") ? $sv->PV : 
+                    $sv->isa("B::NV") ? $sv->NV 
+                                      : $sv->IV;
+                       
         }       
         else {
             $name = "";
@@ -193,5 +213,66 @@ sub compile {
 
     return $modes{$mode};
 }
+
+
+sub sub_call {
+    $_[0]->name eq 'entersub';
+}
+
+sub sub_check {
+    my($op) = shift;
+
+    unless( $op->name eq 'entersub' ) {
+        warn "sub_check only works with entersub ops";
+        return;
+    }
+
+    my @kids = $op->kids;
+
+    # static method call
+    if( my($kid) = grep $_->name eq 'method_named', @kids ) {
+        my $class = _class_or_object_method(@kids);
+        printf "%s method call to %s%s at %s line %d\n", 
+          $class ? "class" : "object",
+          $kid->sv->PV,
+          $class ? " via $class" : '',
+          $B::Utils::file, $B::Utils::line;
+    }
+    # dynamic method call
+    elsif( my($kid) = grep $_->name eq 'method', @kids ) {
+        my $class = _class_or_object_method(@kids);
+        printf "dynamic %s method call%s at %s line %d\n",
+          $class ? "class" : "object",
+          $class ? " via $class" : '',
+          $B::Utils::file, $B::Utils::line;
+    }
+    # function call
+    else {
+        my($name_op) = grep($_->name eq 'gv', @kids);
+        if( $name_op ) {
+            printf "function call to %s at %s line %d\n", 
+              $name_op->gv->NAME, $B::Utils::file, $B::Utils::line;
+        }
+        else {
+            printf "function call using symbolic ref at %s line %d\n",
+              $B::Utils::file, $B::Utils::line;
+        }
+    }    
+}
+
+
+sub _class_or_object_method {
+    my @kids = @_;
+
+    my $class;
+    if( my($classop) = grep($_->name eq 'const', @kids) and
+        !grep($_->name =~ /^padsv|gvsv$/, @kids)
+      ) {
+        $class = $classop->sv->PV;
+    }
+
+    return $class;
+}
+
 
 1;
