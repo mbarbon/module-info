@@ -108,9 +108,10 @@ my %modes = (
                              next;
                          }
 
-                         printf "use %s at %s line %s\n",
+                         printf "use %s (%s) at %s line %s\n",
                              $module,
-                             $begin_cv->FILE, 
+                             get_required_version($req_op, $module),
+                             $begin_cv->FILE,
                              $begin_cv->START->line;
                      }
                      # it can't be an use, scan the optree
@@ -235,6 +236,40 @@ sub begin_is_use {
 }
 
 
+sub get_required_version {
+    my($req_op, $module) = (shift, shift);
+
+    my $version;
+    my $version_op = $req_op->sibling;
+    return if B::class($version_op) eq 'NULL';
+    if ($version_op->name eq 'lineseq') {
+        # We have a version parameter; skip nextstate &
+        # pushmark
+        my $constop = $version_op->first->next->next;
+
+        return '' unless const_sv($constop)->PV eq $module;
+        $constop = $constop->sibling;
+        # $version = const_sv($constop)->NV;
+        $version = const_sv($constop);
+        my $class = B::class($version);
+        $version = $class eq 'IV'   ? $version->int_value :
+                   $class eq 'NV'   ? $version->NV :
+                  ($class eq 'PVNV' && length($version->PV)) ?
+                     'v' . join('.', map(ord,
+                                         split(//,
+                                               $version->PV)
+                                        ))         :
+                                      $version->NV;
+
+        $constop = $constop->sibling;
+        return '' if $constop->name ne "method_named";
+        return '' if const_sv($constop)->PV ne "VERSION";
+    }
+
+    return $version;
+}
+
+
 sub is_require {
     B::class($_[0]) ne 'NULL' && $_[0]->name eq 'require';
 }
@@ -264,7 +299,7 @@ sub show_require {
             $name   = $sv->isa("B::NV") ? $sv->NV : 0;
             $name ||= $sv->isa("B::PV") ? $sv->PV : '';
             $name ||= $sv->IV;
-        }       
+        }
         else {
             $name = "";
         }

@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 
 =head1 NAME
@@ -378,23 +378,51 @@ can't find modules which might be used inside an C<eval>.
 
 sub modules_used {
     my($self) = shift;
+    my %used = $self->modules_required;
+
+    return keys %used;
+}
+
+=item B<modules_required>
+
+  my %required = $module->modules_required;
+
+Returns a list of all modules and files which may be C<use>'d or
+C<require>'d by this module, together with the minimum required version.
+
+The hash is keyes on the module/file name, the corrisponding value is
+an array reference containing the requied versions, or an empty array
+if no specific version was required.
+
+B<NOTE> These modules may be conditionally loaded, can't tell.  Also
+can't find modules which might be used inside an C<eval>.
+
+=cut
+
+sub modules_required {
+    my($self) = shift;
 
     my $mod_file = $self->file;
     my @mods = $self->_call_B('modules_used');
 
     my @used_mods = ();
-    push @used_mods, map { my($file) = /^use (\S+)/;  _file2mod($file); }
-                     grep /^use \D/ && /at \Q$mod_file\E /, @mods;
+    my %used_mods = ();
+    for (grep /^use \D/ && /at \Q$mod_file\E /, @mods) {
+        my($file, $version) = /^use (\S+) \(([^\)]*)\)/;
+        $used_mods{_file2mod($file)} ||= [];
+        next unless defined $version and length $version;
 
-    push @used_mods, map { my($file) = /^require bare (\S+)/;  _file2mod($file) }
+        push @{$used_mods{_file2mod($file)}}, $version;
+    }
+
+    push @used_mods, map { my($file) = /^require bare (\S+)/; _file2mod($file) }
                      grep /^require bare \D/ , @mods;
 
-    push @used_mods, map { /^require not bare (\S+)/; $1 } 
+    push @used_mods, map { /^require not bare (\S+)/; $1 }
                      grep /^require not bare \D/, @mods;
 
-    my %used_mods = ();
-    @used_mods{@used_mods} = (1) x @used_mods;
-    return keys %used_mods;
+    $used_mods{$_} = [] for @used_mods;
+    return %used_mods;
 }
 
 sub _file2mod {
@@ -653,6 +681,11 @@ Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix,
 Module::InstalledVersion and lots of cargo-culting from B::Deparse.
 
 Mattia Barbon <MBARBON@cpan.org> is the current maintainer.
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
 
 =head1 THANKS
 
