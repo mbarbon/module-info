@@ -1,3 +1,7 @@
+0.07  Mon Dec 10 11:09:40 EST 2001
+    * Implemented subroutines().  Need help getting modules_used() done.
+    - Fixed up $B::Utils::file/line handling in B::Utils.
+
 0.06  Sat Nov 24 20:45:15 EST 2001
     * Implemented packages_inside().  Need help getting the rest done.
     - Distributing a hacked up version of B::Utils until the main
