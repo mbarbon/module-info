@@ -1,3 +1,14 @@
+0.11  Sat Feb  2 16:54:23 EST 2002
+    * Fixed B::Utils->kids
+    * Added subroutines_called()
+    * Added superclasses()
+    * Added dynamic_method_calls()
+    - Documented that it isn't just for modules.
+    - name() can now be used to set
+    - failures inside B::Module::Info now report their errors instead of
+      failing silently
+    * Added a THANKS section.
+
 0.10  Wed Dec 12 05:40:14 EST 2001
     * Windows filenames would cause subroutines() and modules_used() to 
       choke. (Thanks to Alessandro Forghieri for the patch)
