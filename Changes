@@ -1,3 +1,7 @@
+0.16  Wed Jan  1 21:21:31 CET 2003
+    - Capture stderr output on MacOS Classic (thanks to Axel Rose for
+      the patch)
+
 0.15  Mon Dec 23 15:08:14 CET 2002
     * Added die_on_compilation_error method.
     * MacOS classic: fixed methods requiring loading. 
