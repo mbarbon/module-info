@@ -8,7 +8,7 @@ use Module::Info;
 my $bar = Module::Info->new_from_module( 'Bar' );
 
 SKIP: {
-    skip "Only works on 5.6.1 and up.", 4 unless $] >= 5.006001;
+    skip "Only works on 5.6.1 and up.", 3 unless $] >= 5.006001;
 
     my %mods = $bar->modules_required;
     is_deeply( [ sort keys %mods ], [ sort qw(Cwd strict Carp) ],

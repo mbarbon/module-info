@@ -1,3 +1,6 @@
+0.26  Sun Jul 11 17:15:36     2004
+    - Fix tests for Perl 5.8.x and 5.6.x.
+
 0.25  Sun Jul 11 16:36:11     2004
     - Fix test to work around modules_required reporting
       different version numbers (0.25 vs. 0.250) under bleadperl.
