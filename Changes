@@ -1,3 +1,11 @@
+0.12  Sat Feb  2 19:41:01 EST 2002
+    * Added pfunc
+    - Now tested back to 5.004
+    * Fixed a bug where certain modules were being ignored
+    - Fixed a bug in subroutines_called() with EXPR->method()
+    - subroutines_called() now reports properly on function calls
+      with symbolic refs
+
 0.11  Sat Feb  2 16:54:23 EST 2002
     * Fixed B::Utils->kids
     * Added subroutines_called()
