@@ -1,0 +1,7 @@
+0.02  Thu Nov 22 10:08:00 EST 2001
+    * Added new_from_loaded()
+
+0.01  Thu Nov 22 09:42:06 EST 2001
+    * First working version
+    * From a discussion on p5p about ExtUtils::MM_Unix->parse_version
+      http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/2001-11/msg01263.html

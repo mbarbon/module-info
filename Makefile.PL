@@ -7,7 +7,7 @@
 
 use ExtUtils::MakeMaker;
 
-$PACKAGE = 'Module::Name';
+$PACKAGE = 'Module::Info';
 ($PACKAGE_FILE = $PACKAGE) =~ s|::|/|g;
 $LAST_API_CHANGE = 0;
 
@@ -26,7 +26,8 @@ CHANGE_WARN
 WriteMakefile(
     NAME            => $PACKAGE,
     VERSION_FROM    => "lib/$PACKAGE_FILE.pm", # finds $VERSION
-    PREREQ_PM       => {   },
+    PREREQ_PM       => { File::Spec => 0.8,     # need rel2abs
+                       },
     'dist'          => { COMPRESS   => 'gzip -9',
                          SUFFIX     => '.gz',
                          DIST_DEFAULT   => 'all tardist',
@@ -41,7 +42,12 @@ WriteMakefile(
         my($self, $orig_perl, $tests) = @_;
 
         my @perls = ($orig_perl);
-        push @perls, qw(bleadperl perl5.005_03 perl5.004_05 perl5.004_04
+        push @perls, qw(bleadperl
+                        perl5.6.1
+                        perl5.6.0
+                        perl5.005_03
+                        perl5.004_05
+                        perl5.004_04
                         perl5.004)
           if $ENV{PERL_TEST_ALL};
 
