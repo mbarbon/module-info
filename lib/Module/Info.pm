@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.19';
+$VERSION = '0.20';
 
 
 =head1 NAME
@@ -346,8 +346,9 @@ sub package_versions {
     # To survive the print(), we translate undef into '~' and then back again.
     (my $quoted_file = $self->file) =~ s/(['\\])/\\$1/g;
     my $command = qq{-le "require '$quoted_file';};
-    $command .= " print defined $_->VERSION ? $_->VERSION : '~';"
-        foreach @packs;
+    foreach (@packs) {
+        $command .= " print defined $_->VERSION ? $_->VERSION : '~';"
+    }
     $command .= qq{"};
 
     my ($status, @versions) = $self->_call_perl($command);
