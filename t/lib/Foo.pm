@@ -1,11 +1,15 @@
 package Foo;
 
-$foo = 42;
+use strict;
+require Exporter;
+require "lib/Foo.pm";
+
+my $foo = 42;
 
 {
     package Bar;
 
-    $bar = 23;
+    my $bar = 23;
 }
 
 sub wibble {
