@@ -1,12 +1,13 @@
 package Module::Info;
 
 use strict;
+use Carp;
 use File::Spec;
 use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 
 =head1 NAME
@@ -34,11 +35,21 @@ Module::Info - Information about Perl modules
   my @packages = $mod->packages_inside;
   my @used     = $mod->modules_used;
   my @subs     = $mod->subroutines;
+  my @isa      = $mod->superclasses;
+  my @calls    = $mod->subroutines_called;
+
+  # Check for constructs which make perl hard to predict.
+  my @methods   = $mod->dynamic_method_calls;
+  my @lines     = $mod->eval_string;    *UNIMPLEMENTED*
+  my @lines     = $mod->gotos;          *UNIMPLEMENTED*
+  my @controls  = $mod->exit_via_loop_control;      *UNIMPLEMENTED*
+  my @unpredictables = $mod->has_unpredictables;    *UNIMPLEMENTED*
 
 =head1 DESCRIPTION
 
 Module::Info gives you information about Perl modules B<without
-actually loading the module>.
+actually loading the module>.  It actually isn't specific to modules
+and should work on any perl code.
 
 =head1 METHODS
 
@@ -54,7 +65,7 @@ They all return Module::Info objects.
   my $module = Module::Info->new_from_file('path/to/Some/Module.pm');
 
 Given a file, it will interpret this as the module you want
-information about.
+information about.  You can also hand it a perl script.
 
 If the file doesn't exist or isn't readable it will return false.
 
@@ -170,14 +181,19 @@ the module.
 =item B<name>
 
   my $name = $module->name;
+  $module->name($name);
 
-Name of the module (ie. Some::Module).  Module loaded using
-new_from_file() won't have this information.
+Name of the module (ie. Some::Module).  
+
+Module loaded using new_from_file() won't have this information in
+which case you can set it yourself.
 
 =cut
 
 sub name {
     my($self) = shift;
+    
+    $self->{name} = shift if @_;
     return $self->{name};
 }
 
@@ -304,13 +320,7 @@ B<KNOWN BUG> Currently doesn't spot package changes inside subroutines.
 sub packages_inside {
     my $self = shift;
 
-    my $mod_file = $self->file;
-
-    # The 2>&1 bit isn't entirely portable.
-    my @packs = `$^X "-MO=Module::Info,packages" $mod_file 2>&1`;
-
-    chomp @packs;
-    @packs = grep !/syntax OK$/, @packs;
+    my @packs = $self->_call_B('packages');
 
     my %packs;
     @packs{@packs} = (1) x @packs;
@@ -334,10 +344,7 @@ sub modules_used {
     my($self) = shift;
 
     my $mod_file = $self->file;
-    my @mods = `$^X "-MO=Module::Info,modules_used" $mod_file 2>&1`;
-
-    chomp @mods;
-    @mods = grep !/syntax OK/, @mods;
+    my @mods = $self->_call_B('modules_used');
 
     my @used_mods = ();
     push @used_mods, map { my($file) = /^use (\S+)/;  _file2mod($file); }
@@ -399,26 +406,149 @@ sub subroutines {
     my($self) = shift;
 
     my $mod_file = $self->file;
-    my @subs = `$^X "-MO=Module::Info,subroutines" $mod_file 2>&1`;
-
-    chomp @subs;
+    my @subs = $self->_call_B('subroutines');
     return  map { /^(\S+) at \S+ from (\d+) to (\d+)/; 
                   ($1 => { start => $2, end => $3 }) } 
-            grep { !/syntax OK$/ && /at \Q$mod_file\E / } @subs;
+            grep /at \Q$mod_file\E /, @subs;
+}
+
+sub _call_B {
+    my($self, $arg) = @_;
+
+    my $mod_file = $self->file;
+    my @out = `$^X "-MO=Module::Info,$arg" $mod_file 2>&1`;
+    if( $? ) {
+        my $exit = $? >> 8;
+        warn join "\n", "B::Module::Info,$arg use failed with $exit saying:", 
+                        @out;
+        return;
+    }
+
+    @out = grep !/syntax OK$/, @out;
+    chomp @out;
+    return @out;
 }
 
 
+=item B<superclasses>
+
+  my @isa = $module->superclasses;
+
+Returns the value of @ISA for this $module.  Requires that
+$module->name be set to work.
+
+B<NOTE> superclasses() is currently cheating.  See L<CAVEATS> below.
+
+=cut
+
+sub superclasses {
+    my $self = shift;
+
+    my $mod_file = $self->file;
+    my $mod_name = $self->name;
+    unless( $mod_name ) {
+        carp 'isa() requires $module->name to be set';
+        return;
+    }
+
+    my @isa = `$^X -e "require q{$mod_file}; print join qq{\\n}, \@$mod_name\::ISA"`;
+    chomp @isa;
+    return @isa;
+}
+
+=item B<subroutines_called>
+
+  my @calls = $module->subroutines_called;
+
+Finds all the methods and functions which are called inside the
+$module.
+
+Returns a list of hashes.  Each hash represents a single function or
+method call and has the keys:
+
+    line        line number where this call originated
+    class       class called on if its a class method
+    type        function, object method, class method,
+                dynamic object method or dynamic class method.
+                (NOTE  This format will probably change)
+    name        name of the function/method called if not dynamic
+
+
+=cut
+
+sub subroutines_called {
+    my($self) = shift;
+
+    my @subs = $self->_call_B('subs_called');
+    my $mod_file = $self->file;
+
+    @subs = grep /at \Q$mod_file\E line/, @subs;
+    my @out = ();
+    foreach (@subs) {
+        my %info = ();
+        ($info{type}) = /^(.+) call/;
+        ($info{name}) = /to (\S+)/;
+        ($info{class})= /via (\S+)/;
+        ($info{line}) = /line (\d+)/;
+        push @out, \%info;
+    }
+    return @out;
+}
+    
 =back
+
+=head2 Information about Unpredictable Constructs
+
+Unpredictable constructs are things that make a Perl program hard to
+predict what its going to do without actually running it.  There's
+nothing wrong with these constructs, but its nice to know where they
+are when maintaining a piece of code.
+
+=over 4
+
+=item B<dynamic_method_calls>
+
+  my @methods = $module->dynamic_method_calls;
+
+Returns a list of dynamic method calls (ie. C<$obj->$method()>) used
+by the $module.  @methods has the same format as the return value of
+subroutines_called().
+
+=cut
+
+sub dynamic_method_calls {
+    my($self) = shift;
+    return grep $_->{type} =~ /dynamic/, $self->subroutines_called;
+}
+
+=back
+
 
 =head1 AUTHOR
 
-Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix
-and Module::InstalledVersion.
+Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix, 
+Module::InstalledVersion and lots of cargo-culting from B::Deparse.
+
+=head1 THANKS
+
+Many thanks to Simon Cozens and Robin Houston for letting me chew
+their ears about B.
 
 =head1 CAVEATS
 
 Code refs in @INC are currently ignored.  If this bothers you submit a
 patch.
+
+superclasses() is cheating and just loading the module in a seperate
+process and looking at @ISA.  I don't think its worth the trouble to
+go through and parse the opcode tree as it still requires loading the
+module and running all the BEGIN blocks.  Patches welcome.
+
+I originally was going to call superclasses() isa() but then I
+remembered that would be bad.
+
+All the methods that require loading are really inefficient as they're
+not caching anything.  I'll worry about efficiency later.
 
 =cut
 
