@@ -236,6 +236,17 @@ sub begin_is_use {
 }
 
 
+sub grep_magic {
+    my($pvmg, $type) = @_;
+    my $magic = $pvmg->MAGIC;
+
+    while ($$magic) {
+        return $magic if $magic->TYPE eq $type;
+    }
+
+    return $magic; # false
+}
+
 sub get_required_version {
     my($req_op, $module) = (shift, shift);
 
@@ -252,9 +263,13 @@ sub get_required_version {
         # $version = const_sv($constop)->NV;
         $version = const_sv($constop);
         my $class = B::class($version);
+        my $magic;
         $version = $class eq 'IV'   ? $version->int_value :
                    $class eq 'NV'   ? $version->NV :
-                  ($class eq 'PVNV' && length($version->PV)) ?
+                  ($class eq 'PVMG' && ($magic = grep_magic($version, 'V'))
+                        && $$magic) ? 'v' . $magic->PTR :
+                 (($class eq 'PVNV' || $class eq 'PVMG')
+                       && length($version->PV)) ?
                      'v' . join('.', map(ord,
                                          split(//,
                                                $version->PV)
@@ -334,7 +349,7 @@ sub sub_check {
         my $class = _class_or_object_method(@kids);
         printf "%s method call to %s%s at %s line %d\n", 
           $class ? "class" : "object",
-          $kid->sv->PV,
+          const_sv($kid)->PV,
           $class ? " via $class" : '',
           $B::Utils::file, $B::Utils::line;
     }
@@ -358,7 +373,7 @@ sub sub_check {
             printf "function call using symbolic ref at %s line %d\n",
               $B::Utils::file, $B::Utils::line;
         }
-    }    
+    }
 }
 
 
