@@ -7,7 +7,7 @@ use Config;
 my $Mod_Info_VERSION = '0.12';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
-$ENV{PERL5LIB} = join ':', 'blib/lib', @old5lib;
+$ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
 
 use_ok('Module::Info');
 my @expected_subs = qw(
