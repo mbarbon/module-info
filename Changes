@@ -1,3 +1,6 @@
+0.13
+    - pfunc can now distinguish between class and object methods.
+
 0.12  Sat Feb  2 19:41:01 EST 2002
     * Added pfunc
     - Now tested back to 5.004

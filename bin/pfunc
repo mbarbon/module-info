@@ -20,7 +20,7 @@ found on along with what sort of call it is
 
 =head1 EXAMPLE
 
-    pfunc isa /usr/share/perl/5.6.1/*.pm
+    $ pfunc isa /usr/share/perl/5.6.1/*.pm
     Called as function in /usr/share/perl/5.6.1/CGI.pm at line 316
     Called as function in /usr/share/perl/5.6.1/CGI.pm at line 327
     Called as function in /usr/share/perl/5.6.1/CGI.pm at line 397
@@ -65,7 +65,11 @@ foreach my $file (@ARGV) {
                 grep { defined $_->{name} and $_->{name} eq $func }
                      $mod->subroutines_called;
     foreach my $call (@calls) {
-        print "Called as $call->{type} in $file at line $call->{line}\n";
+        my $as = $call->{type} =~ /class method/ 
+                     ? "$call->{type} via $call->{class}"
+                     : $call->{type};
+        printf "Called as %s in %s at line %d\n",
+               $as, $file, $call->{line}
     }
 }
     
