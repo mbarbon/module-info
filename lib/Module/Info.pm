@@ -5,7 +5,7 @@ use File::Spec;
 use Config;
 
 use vars qw($VERSION);
-$VERSION = 0.07;
+$VERSION = 0.08;
 
 
 =head1 NAME
@@ -31,7 +31,7 @@ Module::Info - Information about Perl modules
   # Only available in perl 5.6.1 and up.
   # These do compile the module.
   my @packages = $mod->packages_inside;
-  my @used     = $mod->modules_used;        **UNIMPLEMENTED**
+  my @used     = $mod->modules_used;
   my @subs     = $mod->subroutines;
 
 =head1 DESCRIPTION
@@ -317,12 +317,12 @@ sub packages_inside {
     return keys %packs;
 }
 
-=item B<modules_used> *UNIMPLEMENTED*
+=item B<modules_used>
 
   my @used = $module->modules_used;
 
-Returns a list of all modules which may be C<use>'d or C<require>'d by
-this module.
+Returns a list of all modules and files which may be C<use>'d or
+C<require>'d by this module.
 
 B<NOTE> These modules may be conditionally loaded, can't tell.  Also
 can't find modules which might be used inside an C<eval>.
@@ -330,16 +330,36 @@ can't find modules which might be used inside an C<eval>.
 =cut
 
 sub modules_used {
-    die "UNIMPLEMENTED!\n";
-
     my($self) = shift;
 
     my $mod_file = $self->file;
     my @mods = `$^X "-MO=Module::Info,modules_used" $mod_file 2>&1`;
 
     chomp @mods;
-    return grep !/syntax OK/, @mods;
+    @mods = grep !/syntax OK/, @mods;
+
+    my @used_mods = ();
+    push @used_mods, map { my($file) = /^use (\S+)/;  _file2mod($file); }
+                     grep /^use \D/ && /at $mod_file /, @mods;
+
+    push @used_mods, map { my($file) = /^require bare (\S+)/;  _file2mod($file) }
+                     grep /^require bare \D/ , @mods;
+
+    push @used_mods, map { /^require not bare (\S+)/; $1 } 
+                     grep /^require not bare/, @mods;
+
+    my %used_mods = ();
+    @used_mods{@used_mods} = (1) x @used_mods;
+    return keys %used_mods;
 }
+
+sub _file2mod {
+    my($mod) = shift;
+    $mod =~ s/\.pm//;
+    $mod =~ s|/|::|g;
+    return $mod;
+}
+
 
 =item B<subroutines>
 
