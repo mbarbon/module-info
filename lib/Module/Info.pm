@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 
 =head1 NAME
@@ -412,11 +412,35 @@ sub subroutines {
             grep /at \Q$mod_file\E /, @subs;
 }
 
+sub _is_win95 {
+    return $^O eq 'MSWin32' && Win32::GetOSVersion() == 1;
+}
+
 sub _call_B {
     my($self, $arg) = @_;
 
     my $mod_file = $self->file;
-    my @out = `$^X "-MO=Module::Info,$arg" $mod_file 2>&1`;
+    my $command = qq{$^X "-MO=Module::Info,$arg" "$mod_file"};
+    my @out;
+
+    if( _is_win95 ) {
+        require IPC::Open3;
+        local *OUTFH;
+        my($line, $in);
+        my $out = \*OUTFH;
+        my $pid = IPC::Open3::open3($in, $out, $out, $command);
+        close $in;
+        while( defined($line = <OUTFH>) ) {
+            $line =~ s/\r\n$/\n/; # strip CRs
+            push @out, $line;
+        }
+
+        waitpid $pid, 0;
+    }
+    else {
+        @out = `$command 2>&1`;
+    }
+
     if( $? ) {
         my $exit = $? >> 8;
         warn join "\n", "B::Module::Info,$arg use failed with $exit saying:", 
@@ -496,7 +520,7 @@ sub subroutines_called {
     }
     return @out;
 }
-    
+
 =back
 
 =head2 Information about Unpredictable Constructs
@@ -525,11 +549,12 @@ sub dynamic_method_calls {
 
 =back
 
-
 =head1 AUTHOR
 
-Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix, 
+Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix,
 Module::InstalledVersion and lots of cargo-culting from B::Deparse.
+
+Mattia Barbon <MBARBON@cpan.org> is the current maintainer.
 
 =head1 THANKS
 
