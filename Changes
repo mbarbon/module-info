@@ -1,5 +1,8 @@
-0.20
+0.20  Thu May 22 10:30:31 CEST 2003
     - Fixed a warning in module_info (thanks to Nathan Torkington)
+    - Corrected number of skipped tests for Perl versions earlier
+      than 5.6.1 (thanks to Mike Fragassi)
+    - Fixed syntax error with Perl 5.004.
 
 0.19  Tue Apr  1 15:45:43 CEST 2003
     + Added package_versions() (patch by Ken Williams).
