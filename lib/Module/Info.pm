@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 
 =head1 NAME
@@ -454,6 +454,7 @@ sub _call_perl {
         @out = `$command 2>&1`;
     }
 
+    @out = grep !/^Using.*blib$/, @out;
     return ($?, @out);
 }
 
