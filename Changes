@@ -1,4 +1,4 @@
-0.13
+0.13  Sat Dec  7 10:29:42 CET 2002
     - pfunc can now distinguish between class and object methods.
     - B::Utils no longer loading Exporter to avoid loading a bunch of
       modules.
@@ -7,6 +7,16 @@
     - Test made more polite for systems who's path_sep is not :
     - Fixing case where an op filter may encounter a NULL op when
       checking for entersubs.
+    - Quote filename in the call to B::Module::Info, allows
+      using directories with spaces.
+    - Fixed the case where a module does not have any BEGIN blocks.
+    * Fixed non-bareword require in a BEGIN block.
+    * Fixed require $foo.
+    * Fixed BEGIN blocks not containing a require.
+    * Scan subroutines when searching for required modules.
+    * Fixed various problems with perl 5.6.1 on Win32
+      (probably due to ithreads).
+    - Use IPC::Open3 under Windows 95/98/ME, since 2>&1 does not work.
 
 0.12  Sat Feb  2 19:41:01 EST 2002
     * Added pfunc
