@@ -5,7 +5,7 @@ use File::Spec;
 use Config;
 
 use vars qw($VERSION);
-$VERSION = 0.06;
+$VERSION = 0.07;
 
 
 =head1 NAME
@@ -32,7 +32,7 @@ Module::Info - Information about Perl modules
   # These do compile the module.
   my @packages = $mod->packages_inside;
   my @used     = $mod->modules_used;        **UNIMPLEMENTED**
-  my @subs     = $mod->subroutines;         **UNIMPLEMENTED**
+  my @subs     = $mod->subroutines;
 
 =head1 DESCRIPTION
 
@@ -269,19 +269,22 @@ installation.
 sub is_core {
     my($self) = shift;
 
-    return scalar grep $self->{dir} eq $_, ($Config{installarchlib},
-                                            $Config{installprivlib});
+    return scalar grep $self->{dir} eq File::Spec->canonpath($_), 
+                           ($Config{installarchlib},
+                            $Config{installprivlib});
 }
 
 =back
 
 =head2 Information that requires loading.
 
+B<WARNING!>  From here down reliability drops rapidly!
+
 The following methods get their information by compiling the module
 and examining the opcode tree.  The module will be compiled in a
 seperate process so as not to disturb the current program.
 
-They will only work on 5.6.1 and up and require the B::Utils module.
+They will only work on 5.6.1 and up and requires the B::Utils module.
 
 =over 4
 
@@ -303,7 +306,7 @@ sub packages_inside {
     my $mod_file = $self->file;
 
     # The 2>&1 bit isn't entirely portable.
-    my @packs = `$^X "-Ilib" "-MO=Module::Info,packages" $mod_file 2>&1`;
+    my @packs = `$^X "-MO=Module::Info,packages" $mod_file 2>&1`;
 
     chomp @packs;
     @packs = grep !/syntax OK$/, @packs;
@@ -326,16 +329,44 @@ can't find modules which might be used inside an C<eval>.
 
 =cut
 
-sub modules_used { die "UNIMPLEMENTED" }
+sub modules_used {
+    die "UNIMPLEMENTED!\n";
+
+    my($self) = shift;
+
+    my $mod_file = $self->file;
+    my @mods = `$^X "-MO=Module::Info,modules_used" $mod_file 2>&1`;
+
+    chomp @mods;
+    return grep !/syntax OK/, @mods;
+}
 
 =item B<subroutines>
 
   my %subs = $module->subroutines;
 
-Returns a hash of all subroutines defined inside this module and a
-code reference to it.  The key is the *full* name of the subroutine
+Returns a hash of all subroutines defined inside this module and some
+info about it.  The key is the *full* name of the subroutine
 (ie. $subs{'Some::Module::foo'} rather than just $subs{'foo'}), value
-is a code ref to the subroutine.
+is a hash ref with information about the subroutine like so:
+
+    start   => line number of the first statement in the subroutine
+    end     => line number of the last statement in the subroutine
+
+Note that the line numbers may not be entirely accurate and will
+change as perl's backend compiler improves.  They typically correspond
+to the first and last I<run-time> statements in a subroutine.  For
+example:
+
+    sub foo {
+        package Wibble;
+        $foo = "bar";
+        return $foo;
+    }
+
+Taking C<sub foo {> as line 1, Module::Info will report line 3 as the
+start and line 4 as the end.  C<package Wibble;> is a compile-time
+statement.  Again, this will change as perl changes.
 
 Note this only catches simple C<sub foo {...}> subroutine
 declarations.  Anonymous, autoloaded or eval'd subroutines are not
@@ -344,15 +375,15 @@ listed.
 =cut
 
 sub subroutines {
-    die "UNIMPLEMENTED";
-
     my($self) = shift;
 
     my $mod_file = $self->file;
-    my @subs = `$^X "-Ilib" "-MO=Module::Info,subroutines" $mod_file 2>&1`;
+    my @subs = `$^X "-MO=Module::Info,subroutines" $mod_file 2>&1`;
 
     chomp @subs;
-    return grep !/syntax OK$/, @subs;
+    return  map { /^(\S+) at \S+ from (\d+) to (\d+)/; 
+                  ($1 => { start => $2, end => $3 }) } 
+            grep { !/syntax OK$/ && /at $mod_file / } @subs;
 }
 
 
