@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 
 use lib qw(t/lib);
-use Test::More tests => 36;
+use Test::More tests => 68;
 use Config;
 
-my $Mod_Info_VERSION = 0.06;
+my $Mod_Info_VERSION = 0.07;
 
 use_ok('Module::Info');
 can_ok('Module::Info', qw(new_from_file new_from_module all_installed
@@ -23,11 +23,39 @@ is( $mod_info->file, File::Spec->rel2abs('lib/Module/Info.pm'),
 ok( !$mod_info->is_core,                    '    not a core module' );
 
 SKIP: {
-    skip "Only works on 5.6.0 and up.", 2 unless $] >= 5.006;
+    skip "Only works on 5.6.1 and up.", 30 unless $] >= 5.006001;
+
+    my %expected_subs = (
+                         new_from_file          => [63,  73],
+                         new_from_module        => [90,  91],
+                         new_from_loaded        => [104, 114],
+                         all_installed          => [129, 130],
+                         _find_all_installed    => [135, 156],
+                         name                   => [179, 180],
+                         version                => [194, 224],
+                         inc_dir                => [238, 240],
+                         file                   => [252, 254],
+                         is_core                => [270, 272],
+                         packages_inside        => [304, 317],
+                         modules_used           => [333, 341],
+                         subroutines            => [378, 386],
+                        );
+    %expected_subs = map { ("Module::Info::$_" => $expected_subs{$_}) } 
+                     keys %expected_subs;
 
     my @packages = $mod_info->packages_inside;
     is( @packages, 1,                   'Found a single package inside' );
     is( $packages[0], 'Module::Info',   '  and its what we want' );
+
+    my %subs = $mod_info->subroutines;
+    is( keys %subs, keys %expected_subs,    'Found all the subroutines' );
+    is_deeply( [sort keys %subs], 
+               [sort keys %expected_subs],  '   names' );
+    
+    while( my($name, $info) = each %expected_subs ) {
+        is( $expected_subs{$name}[0], $subs{$name}{start},  "$name start" );
+        is( $expected_subs{$name}[1], $subs{$name}{end},    "$name end" );
+    }
 }
 
 
@@ -95,10 +123,19 @@ ok( !(grep { !defined $_ || !$_->isa('Module::Info') } @modules),
 
 
 SKIP: {
-    skip "Only works on 5.6.0 and up.", 2 unless $] >= 5.006;
+    skip "Only works on 5.6.1 and up.", 6 unless $] >= 5.006001;
 
     my $module = Module::Info->new_from_file('t/lib/Foo.pm');
     my @packages = $module->packages_inside;
     is( @packages, 2,       'Found two packages inside' );
     ok( eq_set(\@packages, [qw(Foo Bar)]),   "  they're right" );
+
+    my %subs = $module->subroutines;
+    is( keys %subs, 1,                          'Found one subroutine' );
+    ok( exists $subs{'Foo::wibble'},            '   its right' );
+
+    my($start, $end) = @{$subs{'Foo::wibble'}}{qw(start end)};
+    print "# start $start, end $end\n";
+    is( $start, 13,           '   start line' );
+    is( $end,   14,           '   end line'   );
 }
