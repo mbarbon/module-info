@@ -1,6 +1,9 @@
 package Bar;
 
 use Cwd;
+use Cwd 1;
+use Cwd 1.00102;
+use Cwd 1.1.2;
 
 BEGIN {
     cwd();

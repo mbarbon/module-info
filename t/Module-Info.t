@@ -4,7 +4,7 @@ use lib qw(t/lib);
 use Test::More tests => 58;
 use Config;
 
-my $Mod_Info_VERSION = '0.20';
+my $Mod_Info_VERSION = '0.21';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -23,6 +23,7 @@ my @expected_subs = qw(
                        is_core            
                        packages_inside    
                        package_versions
+                       modules_required
                        modules_used       
                        _file2mod          
                        subroutines        

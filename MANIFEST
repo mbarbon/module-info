@@ -14,3 +14,4 @@ t/lib/Test/Builder.pm
 t/lib/Test/More.pm
 t/lib/Test/Simple.pm
 t/n0_die_on_error.t
+t/n1_modules_required.t
