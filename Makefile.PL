@@ -5,6 +5,8 @@
 # - Fill in your dependencies in PREREQ_PM
 # Alternatively, you can say the hell with this and use h2xs.
 
+require 5.004;
+
 use ExtUtils::MakeMaker;
 
 $PACKAGE = 'Module::Info';
@@ -23,12 +25,10 @@ are upgrading from a version older than $LAST_API_CHANGE.
 CHANGE_WARN
 }
 
-my %prereqs = ( File::Spec => 0.8 );     # need rel2abs
-
 WriteMakefile(
     NAME            => $PACKAGE,
     VERSION_FROM    => "lib/$PACKAGE_FILE.pm", # finds $VERSION
-    PREREQ_PM       => \%prereqs,
+    PREREQ_PM       => { File::Spec => 0.8 },
     'dist'          => { COMPRESS   => 'gzip -9',
                          SUFFIX     => '.gz',
                          DIST_DEFAULT   => 'all tardist',
