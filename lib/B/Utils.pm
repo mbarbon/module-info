@@ -12,13 +12,13 @@ our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     opgrep
                    );
 
-our $VERSION = 0.02_04;
+our $VERSION = 0.02_05;
 
 use B qw(main_start main_root walksymtable class OPf_KIDS);
 
 my (%starts, %roots, @anon_subs);
 
-our @bad_stashes = qw(B Carp Exporter warnings Cwd Config CORE blib strict DynaLoader vars XSLoader AutoLoader base);
+our @bad_stashes = qw(Carp B Exporter XSLoader strict warnings);
 
 { my $_subsdone=0;
 sub _init { # To ensure runtimeness.
