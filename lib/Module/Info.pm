@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 
 =head1 NAME
@@ -468,8 +468,9 @@ method call and has the keys:
 
     line        line number where this call originated
     class       class called on if its a class method
-    type        function, object method, class method,
-                dynamic object method or dynamic class method.
+    type        function, symbolic function, object method, 
+                class method, dynamic object method or 
+                dynamic class method.
                 (NOTE  This format will probably change)
     name        name of the function/method called if not dynamic
 
@@ -487,7 +488,8 @@ sub subroutines_called {
     foreach (@subs) {
         my %info = ();
         ($info{type}) = /^(.+) call/;
-        ($info{name}) = /to (\S+)/;
+        $info{type} = 'symbolic function' if /using symbolic ref/;
+        ($info{'name'}) = /to (\S+)/;
         ($info{class})= /via (\S+)/;
         ($info{line}) = /line (\d+)/;
         push @out, \%info;
