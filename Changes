@@ -1,3 +1,10 @@
+0.10  Wed Dec 12 05:40:14 EST 2001
+    * Windows filenames would cause subroutines() and modules_used() to 
+      choke. (Thanks to Alessandro Forghieri for the patch)
+
+0.09  Mon Dec 10 14:55:09 EST 2001
+    - little bug in modules_used() and "require 5.004"
+
 0.08  Mon Dec 10 14:24:56 EST 2001
     * Implemented modules_used()
     - Fixed a little bug in walkoptree_filtered() and $B::Utils::file/line
