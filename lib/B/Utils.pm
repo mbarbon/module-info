@@ -12,7 +12,7 @@ our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     opgrep
                    );
 
-our $VERSION = 0.02_03;
+our $VERSION = 0.02_04;
 
 use B qw(main_start main_root walksymtable class OPf_KIDS);
 
@@ -123,16 +123,49 @@ Returns an array of all this op's non-null children.
 
 sub B::OP::kids {
     my $op = shift;
-    my @rv;
-    push @rv, $op->first if $op->can("first") and $op->first and ${$op->first};
-    push @rv, $op->last if $op->can("last") and $op->last and ${$op->last};
-    push @rv, $op->other if $op->can("other") and $op->other and ${$op->other};
-    if (class($op) eq "LISTOP") { 
-        $op = $op->first;
-        push @rv, $op while $op->can("sibling") and $op = $op->sibling and $$op;
+    my @rv = ();
+
+    foreach my $type (qw(first last other)) {
+        no strict 'refs';
+        my $kid = &{"safe_$type"}($op);
+        next if !$kid || class($kid) eq 'NULL';
+        if( $kid->name eq 'null' ) {
+            push @rv, $kid->kids;
+        }
+        else {
+            push @rv, $kid;
+        }
     }
-    return @rv;
+
+    my @more_rv = ();
+    foreach my $more_op (@rv) {
+        my $next_op = $more_op;
+        while( $next_op->can("sibling") ) {
+            $next_op = $next_op->sibling;
+            last if !$next_op || class($next_op) eq 'NULL';
+            if( $next_op->name eq 'null' ) {
+                push @more_rv, $next_op->kids;
+            }
+            else {
+                push @more_rv, $next_op;
+            }
+        }
+    }
+
+    return @rv, @more_rv;
 }
+
+foreach my $type (qw(first last other)) {
+    no strict 'refs';
+    *{'safe_'.$type} = sub {
+        my($op) = shift;
+        if( $op->can($type) ) {
+            my $kid = $op->$type;
+            return $kid if $kid;
+        }
+    }
+}
+
 
 =item C<< $op->parent >>
 
