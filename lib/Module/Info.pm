@@ -3,9 +3,10 @@ package Module::Info;
 use strict;
 use File::Spec;
 use Config;
+require 5.004;
 
 use vars qw($VERSION);
-$VERSION = 0.08;
+$VERSION = 0.10;
 
 
 =head1 NAME
@@ -340,13 +341,13 @@ sub modules_used {
 
     my @used_mods = ();
     push @used_mods, map { my($file) = /^use (\S+)/;  _file2mod($file); }
-                     grep /^use \D/ && /at $mod_file /, @mods;
+                     grep /^use \D/ && /at \Q$mod_file\E /, @mods;
 
     push @used_mods, map { my($file) = /^require bare (\S+)/;  _file2mod($file) }
                      grep /^require bare \D/ , @mods;
 
     push @used_mods, map { /^require not bare (\S+)/; $1 } 
-                     grep /^require not bare/, @mods;
+                     grep /^require not bare \D/, @mods;
 
     my %used_mods = ();
     @used_mods{@used_mods} = (1) x @used_mods;
@@ -403,7 +404,7 @@ sub subroutines {
     chomp @subs;
     return  map { /^(\S+) at \S+ from (\d+) to (\d+)/; 
                   ($1 => { start => $2, end => $3 }) } 
-            grep { !/syntax OK$/ && /at $mod_file / } @subs;
+            grep { !/syntax OK$/ && /at \Q$mod_file\E / } @subs;
 }
 
 
