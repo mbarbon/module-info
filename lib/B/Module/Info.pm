@@ -1,6 +1,6 @@
 package B::Module::Info;
 
-$VERSION = '0.23';
+$VERSION = '0.24';
 
 use B;
 use B::Utils qw(walkoptree_filtered walkoptree_simple
@@ -260,7 +260,6 @@ sub get_required_version {
 
         return '' unless const_sv($constop)->PV eq $module;
         $constop = $constop->sibling;
-        # $version = const_sv($constop)->NV;
         $version = const_sv($constop);
         my $class = B::class($version);
         my $magic;
@@ -268,12 +267,13 @@ sub get_required_version {
                    $class eq 'NV'   ? $version->NV :
                   ($class eq 'PVMG' && ($magic = grep_magic($version, 'V'))
                         && $$magic) ? 'v' . $magic->PTR :
-                 (($class eq 'PVNV' || $class eq 'PVMG')
+                 ((($class eq 'PVNV' && $] < 5.009) || $class eq 'PVMG')
                        && length($version->PV)) ?
                      'v' . join('.', map(ord,
                                          split(//,
                                                $version->PV)
                                         ))         :
+                   $class eq 'PVIV' ? $version->int_value :
                                       $version->NV;
 
         $constop = $constop->sibling;
