@@ -12,7 +12,7 @@ our @EXPORT_OK = qw(all_starts all_roots anon_subs
                     opgrep
                    );
 
-our $VERSION = 0.02_02;
+our $VERSION = 0.02_03;
 
 use B qw(main_start main_root walksymtable class OPf_KIDS);
 
@@ -266,7 +266,7 @@ sub _walkoptree_filtered {
     if ($$op && ($op->flags & OPf_KIDS)) {
         my $kid;
         for ($kid = $op->first; $$kid; $kid = $kid->sibling) {
-            walkoptree_filtered($kid, $filter, $callback, $data);
+            _walkoptree_filtered($kid, $filter, $callback, $data);
         }
     }
 }
