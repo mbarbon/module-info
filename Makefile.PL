@@ -34,7 +34,10 @@ WriteMakefile(
                          DIST_DEFAULT   => 'all tardist',
                        },
     EXE_FILES       => [qw(bin/pfunc bin/module_info)],
-    AUTHOR          => 'Mattia Barbon <mbarbon@cpan.org>',
+    PL_FILES        => {}, # skip Build.PL
+    ( $] >= 5.005 ?
+      ( AUTHOR          => 'Mattia Barbon <mbarbon@cpan.org>' ) :
+      () ),
 );
 
 
