@@ -1,6 +1,8 @@
 0.28
     - Correct the attributions of the fixes in 0.27 (I swapped
       authors' names).
+    * Added Module::Build support as an alternative to
+      ExtUtils::MakeMaker.
 
 0.27  Fri Mar  4 07:56:58 CET 2005
     - Added missing localization of $_ in version().

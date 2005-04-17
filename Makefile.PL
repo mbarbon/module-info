@@ -34,6 +34,7 @@ WriteMakefile(
                          DIST_DEFAULT   => 'all tardist',
                        },
     EXE_FILES       => [qw(bin/pfunc bin/module_info)],
+    AUTHOR          => 'Mattia Barbon <mbarbon@cpan.org>',
 );
 
 
