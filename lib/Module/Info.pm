@@ -7,7 +7,7 @@ use Config;
 require 5.004;
 
 use vars qw($VERSION);
-$VERSION = '0.27';
+$VERSION = '0.28';
 
 
 =head1 NAME
