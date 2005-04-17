@@ -6,8 +6,9 @@ use File::Spec;
 use Config;
 require 5.004;
 
-use vars qw($VERSION);
+use vars qw($VERSION @ISA);
 $VERSION = '0.28';
+@ISA = qw(Module::Info::Unsafe);
 
 
 =head1 NAME
@@ -48,6 +49,8 @@ Module::Info - Information about Perl modules
   # set/get Module::Info options
   $self->die_on_compilation_error(1);
   my $die_on_error = $mod->die_on_compilation_error;
+  $self->safe(1);
+  my $safe = $mod->safe;
 
 =head1 DESCRIPTION
 
@@ -216,6 +219,7 @@ sub version {
     local($_, *MOD);
 
     my $parsefile = $self->file;
+    my $safe = $self->safe;
 
     open(MOD, $parsefile) or die $!;
 
@@ -227,18 +231,18 @@ sub version {
 
         chomp;
         next unless /([\$*])(([\w\:\']*)\bVERSION)\b.*\=/;
-        my $eval = qq{
+        my $eval = sprintf qq{
                       package Module::Info::_version;
-                      no strict;
+                      %s
 
                       local $1$2;
                       \$$2=undef; do {
                           $_
                       }; \$$2
-        };
+        }, ( $safe ? '' : 'no strict;' );
         local $^W = 0;
-        $result = eval($eval);
-        warn "Could not eval '$eval' in $parsefile: $@" if $@;
+        $result = $self->_eval($eval);
+        warn "Could not eval '$eval' in $parsefile: $@" if $@ && !$safe;
         $result = "undef" unless defined $result;
         last;
     }
@@ -422,7 +426,7 @@ sub modules_required {
     push @used_mods, map { /^require not bare (\S+)/; $1 }
                      grep /^require not bare \D/, @mods;
 
-    $used_mods{$_} = [] for @used_mods;
+    foreach ( @used_mods ) { $used_mods{$_} = [] };
     return %used_mods;
 }
 
@@ -477,47 +481,7 @@ sub subroutines {
             grep /at "\Q$mod_file\E" /, @subs;
 }
 
-sub _is_win95() {
-    return $^O eq 'MSWin32' && Win32::GetOSVersion() == 1;
-}
-
-sub _is_macos_classic() {
-    return $^O eq 'MacOS';
-}
-
 sub _get_extra_arguments { '' }
-
-sub _call_perl {
-    my($self, $args) = @_;
-
-    my $perl = _is_macos_classic ? 'perl' : $^X;
-    my $command = "$perl $args";
-    my @out;
-
-    if( _is_win95 ) {
-        require IPC::Open3;
-        local *OUTFH;
-        my($line, $in);
-        my $out = \*OUTFH;
-        my $pid = IPC::Open3::open3($in, $out, $out, $command);
-        close $in;
-        while( defined($line = <OUTFH>) ) {
-            $line =~ s/\r\n$/\n/; # strip CRs
-            push @out, $line;
-        }
-
-        waitpid $pid, 0;
-    }
-    elsif( _is_macos_classic ) {
-        @out = `$command \xb7 Dev:Stdout`;
-    }
-    else {
-        @out = `$command 2>&1`;
-    }
-
-    @out = grep !/^Using.*blib$/, @out;
-    return ($?, @out);
-}
 
 sub _call_B {
     my($self, $arg) = @_;
@@ -659,10 +623,10 @@ Module::Info object.
   $module->die_on_compilation_error(1);
   my $flag = $module->die_on_compilation_error;
 
-Sets/gets the "die on compilation error" flag. Whne the flag is off
+Sets/gets the "die on compilation error" flag. When the flag is off
 (default), and a module fails to compile, Module::Info simply emits a
 watning and continues. When the flag is on and a module fails to
-compile, Module::Info die()s with the same error message it would use
+compile, Module::Info C<die()>s with the same error message it would use
 in the warning.
 
 =cut
@@ -674,6 +638,29 @@ sub die_on_compilation_error {
     return $self->{die_on_compilation_error};
 }
 
+=item B<safe>
+
+  $module->safe(0); # default
+  $module->safe(1); # be safer
+  my $flag = $module->safe;
+
+Sets/gets the "safe" flag. When the flag is enabled all operations
+requiring module compilation are forbidden and the C<version()> method
+executes its code in a C<Safe> compartment.
+
+=cut
+
+sub safe {
+    my($self) = shift;
+
+    if( @_ ) {
+        @ISA = $_[0] ? 'Module::Info::Safe' : 'Module::Info::Unsafe';
+        require Safe if $_[0];
+    }
+    # isa() fails with (at least) ActivePerl 522
+    return $ISA[0] eq 'Module::Info::Safe' ? 1 : 0;
+}
+
 =back
 
 =head1 AUTHOR
@@ -681,7 +668,7 @@ sub die_on_compilation_error {
 Michael G Schwern <schwern@pobox.com> with code from ExtUtils::MM_Unix,
 Module::InstalledVersion and lots of cargo-culting from B::Deparse.
 
-Mattia Barbon <MBARBON@cpan.org> is the current maintainer.
+Mattia Barbon <mbarbon@cpan.org> is the current maintainer.
 
 =head1 LICENSE
 
@@ -710,5 +697,72 @@ All the methods that require loading are really inefficient as they're
 not caching anything.  I'll worry about efficiency later.
 
 =cut
+
+package Module::Info::Safe;
+
+my $root = 'Module::Info::Safe::_safe';
+
+sub _create_compartment {
+    my $safe = Safe->new( $root );
+
+    $safe->permit_only( qw(:base_orig :base_core) );
+
+    return $safe;
+}
+
+sub _eval {
+    my($self, $code) = @_;
+    $self->{compartment} ||= _create_compartment;
+
+    return $self->{compartment}->reval( $code, 0 )
+}
+
+sub _call_perl {
+    die "Module::Info attemped an unsafe operation while in 'safe' mode.";
+}
+
+package Module::Info::Unsafe;
+
+sub _eval { eval($_[1]) }
+
+sub _is_win95() {
+    return $^O eq 'MSWin32' && (Win32::GetOSVersion())[4] == 1;
+}
+
+sub _is_macos_classic() {
+    return $^O eq 'MacOS';
+}
+
+sub _call_perl {
+    my($self, $args) = @_;
+
+    my $perl = _is_macos_classic ? 'perl' : $^X;
+    my $command = "$perl $args";
+    my @out;
+
+    if( _is_win95 ) {
+        require IPC::Open3;
+        local *OUTFH;
+        my($line, $in);
+        my $out = \*OUTFH;
+        my $pid = IPC::Open3::open3($in, $out, $out, $command);
+        close $in;
+        while( defined($line = <OUTFH>) ) {
+            $line =~ s/\r\n$/\n/; # strip CRs
+            push @out, $line;
+        }
+
+        waitpid $pid, 0;
+    }
+    elsif( _is_macos_classic ) {
+        @out = `$command \xb7 Dev:Stdout`;
+    }
+    else {
+        @out = `$command 2>&1`;
+    }
+
+    @out = grep !/^Using.*blib$/, @out;
+    return ($?, @out);
+}
 
 return 'Stepping on toes is what Schwerns do best!  *poing poing poing*';

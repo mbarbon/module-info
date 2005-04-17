@@ -92,7 +92,7 @@ sub roots_cv_pairs {
 
 
 my %modes = (
-             packages => sub { 
+             packages => sub {
                  walkoptree_filtered(B::main_root,
                                      \&state_change,
                                      \&state_call );

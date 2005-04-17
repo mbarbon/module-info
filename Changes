@@ -3,6 +3,10 @@
       authors' names).
     * Added Module::Build support as an alternative to
       ExtUtils::MakeMaker.
+    * Added safe() option to forbid unsafe operations (currently
+      executes version() code in a Safe compartment and forbids most
+      other operations).
+    + Fixed compatibility down to Perl 5.004_04.
 
 0.27  Fri Mar  4 07:56:58 CET 2005
     - Added missing localization of $_ in version().
@@ -59,7 +63,7 @@
       the patch)
 
 0.15  Mon Dec 23 15:08:14 CET 2002
-    * Added die_on_compilation_error method
+    * Added die_on_compilation_error() method.
     * MacOS classic: fixed methods requiring loading.
 
 0.14  Sun Dec  8 11:42:11 CET 2002
