@@ -1,5 +1,4 @@
 0.28
-
     - Correct the attributions of the fixes in 0.27 (I swapped
       authors' names).
 
@@ -16,7 +15,7 @@
     - Fix test to work around modules_required reporting
       different version numbers (0.25 vs. 0.250) under bleadperl.
     + Report subroutine/method calls and modules required
-       inside anonymous subroutines.
+      inside anonymous subroutines.
 
 0.24  Wed Oct  1 11:45:45 CEST 2003
     - Fixed version reported by modules_required for bleadperl.
