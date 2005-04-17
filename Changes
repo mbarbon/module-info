@@ -1,10 +1,13 @@
 0.28
 
+    - Correct the attributions of the fixes in 0.27 (I swapped
+      authors' names).
+
 0.27  Fri Mar  4 07:56:58 CET 2005
     - Added missing localization of $_ in version().
-      (thanks to Boris Zentner)
+      (thanks to Johan Lodin)
     - Fixed new_from_loaded() to return nothing when the module
-      is in fact not loaded. (thanks to Johan Lodin)
+      is in fact not loaded. (thanks to Boris Zentner)
 
 0.26  Sun Jul 11 17:15:36 CEST 2004
     - Fix tests for Perl 5.8.x and 5.6.x.
