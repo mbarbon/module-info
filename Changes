@@ -1,4 +1,14 @@
-0.28
+0.29  Tue Nov 22 21:28:26 CET 2005
+    * Fixed version() for complex expressions.
+    - Corrected some POD errors in module_info.
+
+0.28_50  Sun Jul 10 21:48:19 CEST 2005
+    * Added support for version.pm (based upon a
+      patch by John Peacock).
+    * Fixed the safe() attribute to be per-object instead
+      of global.
+
+0.28  Sun Apr 17 17:10:33 CET 2005
     - Correct the attributions of the fixes in 0.27 (I swapped
       authors' names).
     * Added Module::Build support as an alternative to
@@ -6,7 +16,7 @@
     * Added safe() option to forbid unsafe operations (currently
       executes version() code in a Safe compartment and forbids most
       other operations).
-    + Fixed compatibility down to Perl 5.004_04.
+    * Fixed compatibility down to Perl 5.004_04.
 
 0.27  Fri Mar  4 07:56:58 CET 2005
     - Added missing localization of $_ in version().
@@ -20,7 +30,7 @@
 0.25  Sun Jul 11 16:36:11 CEST 2004
     - Fix test to work around modules_required reporting
       different version numbers (0.25 vs. 0.250) under bleadperl.
-    + Report subroutine/method calls and modules required
+    * Report subroutine/method calls and modules required
       inside anonymous subroutines.
 
 0.24  Wed Oct  1 11:45:45 CEST 2003
@@ -31,13 +41,13 @@
       loaded from paths containing spaces.
 
 0.22  Mon Aug 18 14:44:23 CEST 2003
-    + Fixed reporting of static method calls in Perl 5.8.1 RC4
+    * Fixed reporting of static method calls in Perl 5.8.1 RC4
     - Fixed reporting of module versions in Perl 5.8.1 RC4 when
-      "use Foo 1.2.3;" was used
+      "use Foo 1.2.3;" is used
 
 0.21  Fri Aug 15 18:48:53 CEST 2003
     - Added licensing information to Module::Info POD
-    + Added modules_required(). Original patch by Martyn J. Pearce,
+    * Added modules_required(). Original patch by Martyn J. Pearce,
       adapted by me (Mattia Barbon)
 
 0.20  Thu May 22 10:30:31 CEST 2003
@@ -47,11 +57,11 @@
     - Fixed syntax error with Perl 5.004
 
 0.19  Tue Apr  1 15:45:43 CEST 2003
-    + Added package_versions() (patch by Ken Williams)
+    * Added package_versions() (patch by Ken Williams)
     - Fixed handling of v-strings in use/require
 
 0.18  Sat Mar  8 17:44:24 CET 2003
-    + Upgraded bundled B::Utils to 0.04 + Schwern patches
+    * Upgraded bundled B::Utils to 0.04 + Schwern patches
     - Fixed detection of require() statements in non-trivial BEGIN blocks
 
 0.17  Sun Mar  2 11:01:55 CET 2003

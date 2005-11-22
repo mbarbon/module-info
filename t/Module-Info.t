@@ -4,8 +4,11 @@ use lib qw(t/lib);
 use Test::More tests => 59;
 use Config;
 
-my $Mod_Info_VERSION = '0.28';
-my $Mod_Info_Pack_VERSION = $] >= 5.009002 ? '0.280' : '0.28';
+my $has_version_pm = eval 'use version; 1';
+my $Mod_Info_VERSION = '0.29';
+# 0.280 vith version.pm, 0.28 without, except for development versions
+my $Mod_Info_Pack_VERSION = $] >= 5.009002 || $has_version_pm ? '0.290' :
+                                                                '0.29';
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
@@ -35,6 +38,8 @@ my @expected_subs = qw(
                        subroutines_called
                        dynamic_method_calls
                        safe
+                       AUTOLOAD
+                       use_version
                       );
 
 my @unsafe_subs   = qw(

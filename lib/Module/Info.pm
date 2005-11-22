@@ -6,9 +6,12 @@ use File::Spec;
 use Config;
 require 5.004;
 
-use vars qw($VERSION @ISA);
-$VERSION = '0.28';
-@ISA = qw(Module::Info::Unsafe);
+my $has_version_pm = eval 'use version; 1';
+
+use vars qw($VERSION @ISA $AUTOLOAD);
+# quotes 'version' for 5.004
+$VERSION = eval 'use version; 1' ? 'version'->new('0.29') : '0.29';
+$VERSION = eval $VERSION;
 
 
 =head1 NAME
@@ -88,6 +91,8 @@ sub new_from_file {
     $self->{file} = File::Spec->rel2abs($file);
     $self->{dir}  = '';
     $self->{name} = '';
+    $self->{safe} = 0;
+    $self->{use_version} = 0;
 
     return bless $self, $class;
 }
@@ -129,6 +134,8 @@ sub new_from_loaded {
     $module->{name} = $name;
     ($module->{dir} = $filepath) =~ s|/?\Q$mod_file\E$||;
     $module->{dir} = File::Spec->rel2abs($module->{dir});
+    $module->{safe} = 0;
+    $module->{use_version} = 0;
 
     return $module;
 }
@@ -156,7 +163,7 @@ sub _find_all_installed {
 
     @inc = @INC unless @inc;
     my $file = File::Spec->catfile(split /::/, $name) . '.pm';
-    
+
     my @modules = ();
     DIR: foreach my $dir (@inc) {
         # Skip the new code ref in @INC feature.
@@ -171,7 +178,7 @@ sub _find_all_installed {
             last DIR if $find_first_one;
         }
     }
-              
+
     return @modules;
 }
 
@@ -190,7 +197,7 @@ the module.
   my $name = $module->name;
   $module->name($name);
 
-Name of the module (ie. Some::Module).  
+Name of the module (ie. Some::Module).
 
 Module loaded using new_from_file() won't have this information in
 which case you can set it yourself.
@@ -199,7 +206,7 @@ which case you can set it yourself.
 
 sub name {
     my($self) = shift;
-    
+
     $self->{name} = shift if @_;
     return $self->{name};
 }
@@ -237,9 +244,9 @@ sub version {
 
                       local $1$2;
                       \$$2=undef; do {
-                          $_
+                          %s
                       }; \$$2
-        }, ( $safe ? '' : 'no strict;' );
+        }, ( $safe ? '' : 'no strict;' ), $_;
         local $^W = 0;
         $result = $self->_eval($eval);
         warn "Could not eval '$eval' in $parsefile: $@" if $@ && !$safe;
@@ -247,6 +254,9 @@ sub version {
         last;
     }
     close MOD;
+    $result = 'version'->new($result) # quotes for 5.004
+      if    $self->use_version
+         && (!ref($result) || !UNIVERSAL::isa($result, "version"));
     return $result;
 }
 
@@ -654,11 +664,48 @@ sub safe {
     my($self) = shift;
 
     if( @_ ) {
-        @ISA = $_[0] ? 'Module::Info::Safe' : 'Module::Info::Unsafe';
-        require Safe if $_[0];
+        $self->{safe} = $_[0] ? 1 : 0;
+        require Safe if $self->{safe};
     }
-    # isa() fails with (at least) ActivePerl 522
-    return $ISA[0] eq 'Module::Info::Safe' ? 1 : 0;
+    return $self->{safe};
+}
+
+sub AUTOLOAD {
+    my($super) = $_[0]->safe ? 'Module::Info::Safe' : 'Module::Info::Unsafe';
+    my($method) = $AUTOLOAD;
+    $method =~ s/^.*::([^:]+)$/$1/;
+
+    return if $method eq 'DESTROY';
+
+    my($code) = $super->can($method);
+
+    die "Can not find method '$method' in Module::Info" unless $code;
+
+    goto &$code;
+}
+
+=item B<use_version>
+
+  $module->use_version(0); # do not use version.pm (default)
+  $module->use_version(1); # use version.pm, die if not present
+  my $flag = $module->use_version;
+
+Sets/gets the "use_version" flag. When the flag is enabled the 'version'
+method always returns a version object.
+
+=cut
+
+sub use_version {
+    my($self) = shift;
+
+    if( @_ ) {
+        die "Can not use 'version.pm' as requested"
+          if $_[0] && !$has_version_pm;
+
+        $self->{use_version} = $_[0] ? 1 : 0;
+    }
+
+    return $self->{use_version};
 }
 
 =back
