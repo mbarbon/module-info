@@ -35,6 +35,8 @@ Show modules C<use()>d by the module.
 
 Equivalent to C<-s -p -m>.
 
+=back
+
 =head1 AUTHOR
 
 Mattia Barbon <MBARBON@cpan.org>
