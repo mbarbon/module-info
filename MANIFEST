@@ -5,8 +5,8 @@ META.yml
 Makefile.PL
 bin/module_info
 bin/pfunc
+lib/B/BUtils.pm
 lib/B/Module/Info.pm
-lib/B/Utils.pm
 lib/Module/Info.pm
 t/Module-Info.t
 t/lib/Bar.pm
@@ -21,4 +21,5 @@ t/n0_die_on_error.t
 t/n1_modules_required.t
 t/n2_safe.t
 t/n3_version.t
+t/zy_pod_coverage.t
 t/zz_pod.t
