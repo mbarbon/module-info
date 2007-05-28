@@ -39,7 +39,7 @@ Equivalent to C<-s -p -m>.
 
 =head1 AUTHOR
 
-Mattia Barbon <MBARBON@cpan.org>
+Mattia Barbon <mbarbon@cpan.org>
 
 =head1 SEE ALSO
 
@@ -51,13 +51,27 @@ use strict;
 use Module::Info;
 use Getopt::Long;
 
-my( $show_subroutines, $show_modules, $show_packages, $show_all );
+my( $show_subroutines, $show_modules, $show_packages, $show_all, $help );
 
 GetOptions( 's' => \$show_subroutines,
             'p' => \$show_packages,
             'm' => \$show_modules,
             'a' => \$show_all,
+            'h' => \$help,
           );
+
+if( $help || !@ARGV ) {
+    print <<EOT;
+Usage: module_info [-a] [-s] [-p] [-m] MODULE|FILE...
+
+    -a Equivalent to -s -p -m
+    -h Help message
+    -m Show modules use()d by the module
+    -p Show packages created by the module
+    -s Show subroutines created by the module
+EOT
+    exit 0;
+}
 
 $show_subroutines ||= $show_all;
 $show_modules ||= $show_all;
