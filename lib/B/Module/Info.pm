@@ -3,8 +3,8 @@ package B::Module::Info;
 $VERSION = '0.24';
 
 use B;
-use B::Utils qw(walkoptree_filtered walkoptree_simple
-                opgrep all_roots);
+use B::BUtils qw(walkoptree_filtered walkoptree_simple
+                 opgrep all_roots);
 @B::Utils::bad_stashes = qw();  # give us everything.
 
 {
