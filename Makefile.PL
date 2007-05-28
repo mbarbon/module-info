@@ -7,15 +7,17 @@
 
 require 5.004;
 
+use strict;
 use ExtUtils::MakeMaker;
 
-$PACKAGE = 'Module::Info';
-($PACKAGE_FILE = $PACKAGE) =~ s|::|/|g;
-$LAST_API_CHANGE = 0;
+my $PACKAGE = 'Module::Info';
+(my $PACKAGE_FILE = $PACKAGE) =~ s|::|/|g;
+my $LAST_API_CHANGE = 0;
 
 eval "require $PACKAGE";
 
 unless ($@) { # Make sure we did find the module.
+    no strict 'refs';
     print <<"CHANGE_WARN" if ${$PACKAGE.'::VERSION'} < $LAST_API_CHANGE;
 
 NOTE: There have been API changes between this version and any older
@@ -25,10 +27,21 @@ are upgrading from a version older than $LAST_API_CHANGE.
 CHANGE_WARN
 }
 
+eval {
+    require ExtUtils::MY_Metafile;
+    ExtUtils::MY_Metafile->import;
+
+    my_metafile
+      ( { license        => 'perl',
+          dynamic_config => 0,
+          } );
+};
+
 WriteMakefile(
     NAME            => $PACKAGE,
     VERSION_FROM    => "lib/$PACKAGE_FILE.pm", # finds $VERSION
-    PREREQ_PM       => { File::Spec => 0.8 },
+    ABSTRACT_FROM   => "lib/$PACKAGE_FILE.pm",
+    PREREQ_PM       => { 'File::Spec' => 0.8 },
     'dist'          => { COMPRESS   => 'gzip -9',
                          SUFFIX     => '.gz',
                          DIST_DEFAULT   => 'all tardist',
