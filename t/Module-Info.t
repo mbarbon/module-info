@@ -120,16 +120,24 @@ ok( !$mod_info->is_core,                    '    not a core module' );
 @core_inc = map { File::Spec->canonpath($_) }
   ($Config{installarchlib}, $Config{installprivlib});
 $mod_info = Module::Info->new_from_module('Text::Soundex', @core_inc);
-is( $mod_info->name, 'Text::Soundex',       '    name()' );
+if( $mod_info ) {
+    is( $mod_info->name, 'Text::Soundex',       '    name()' );
 
-# dunno what the version will be, 5.004's had none.
+    # dunno what the version will be, 5.004's had none.
 
-ok( grep($mod_info->inc_dir eq $_, @core_inc),       '    inc_dir()' );
-is( $mod_info->file, 
-    File::Spec->catfile( $mod_info->inc_dir, 'Text', 'Soundex.pm' ),
-                                            '    file()');
-ok( $mod_info->is_core,                     '    core module' );
+    ok( grep($mod_info->inc_dir eq $_, @core_inc),       '    inc_dir()' );
+    is( $mod_info->file, 
+        File::Spec->catfile( $mod_info->inc_dir, 'Text', 'Soundex.pm' ),
+                                                '    file()');
+    ok( $mod_info->is_core,                     '    core module' );
+} else {
+    $mod_info = Module::Info->new_from_module('Text::Soundex');
 
+    ok( $mod_info, 'could load Text::Soundex' );
+    ok( $mod_info, 'could load Text::Soundex' );
+    ok( $mod_info, 'could load Text::Soundex' );
+    ok( $mod_info, 'could load Text::Soundex' );
+}
 
 $mod_info = Module::Info->new_from_loaded('Module::Info');
 isa_ok($mod_info, 'Module::Info', 'new_from_module');
