@@ -94,9 +94,11 @@ SKIP: {
                [sort @expected_subs],  '   names' );
 
     my @mods = $mod_info->modules_used;
-    is( @mods, 7,           'Found all modules used' );
-    is_deeply( [sort @mods], [sort qw(strict File::Spec Config
-                                      Carp IPC::Open3 vars Safe)],
+    my @expected = qw(strict File::Spec Config
+                      Carp IPC::Open3 vars Safe);
+    push @expected, 'Exporter' if $] < 5.008;
+    is( @mods, @expected,    'Found all modules used' );
+    is_deeply( [sort @mods], [sort @expected],
                             '    the right ones' );
 }
 
