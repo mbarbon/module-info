@@ -1,3 +1,6 @@
+0.31_01  Mon Apr 12 23:53:53 CEST 2010
+    * Many test fixes.
+
 0.31  Mon May 28 21:40:10 CEST 2007
     * Fixed tests in presence of version.pm 0.72 or newer.
     - Added -h option to module_info.
