@@ -7,6 +7,12 @@ use B::BUtils qw(walkoptree_filtered walkoptree_simple
                  opgrep all_roots);
 @B::Utils::bad_stashes = qw();  # give us everything.
 
+=head1 NAME
+
+B::Module::Info - information about Perl modules
+
+=cut
+
 {
     # From: Roland Walker <walker@ncbi.nlm.nih.gov>
     # "Syntax OK" may land inside output and render it unusable
