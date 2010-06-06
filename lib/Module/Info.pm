@@ -327,7 +327,7 @@ B<WARNING!>  From here down reliability drops rapidly!
 
 The following methods get their information by compiling the module
 and examining the opcode tree.  The module will be compiled in a
-seperate process so as not to disturb the current program.
+separate process so as not to disturb the current program.
 
 They will only work on 5.6.1 and up and requires the B::Utils module.
 
@@ -741,7 +741,7 @@ their ears about B.
 Code refs in @INC are currently ignored.  If this bothers you submit a
 patch.
 
-superclasses() is cheating and just loading the module in a seperate
+superclasses() is cheating and just loading the module in a separate
 process and looking at @ISA.  I don't think its worth the trouble to
 go through and parse the opcode tree as it still requires loading the
 module and running all the BEGIN blocks.  Patches welcome.

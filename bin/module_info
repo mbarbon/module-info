@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-module_info - find informations about modules
+module_info - find information about modules
 
 =head1 SYNOPSIS
 
@@ -14,7 +14,7 @@ List information about the arguments (either module names in the form
 C<Module::Name> or paths in the form C<Foo/Bar.pm> or C<foo/bar.pl>).
 
 By default only shows module name, version, directory, absolute path
-and a flag indicating if it is a core module. Additional informations
+and a flag indicating if it is a core module. Additional information
 can be requested through command line switches.
 
 =over 4
