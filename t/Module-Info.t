@@ -300,6 +300,6 @@ SKIP: {
     $module = Module::Info->new_from_file('t/lib/Bar.pm');
     @mods   = $module->modules_used;
     is( @mods, 3, 'modules_used with complex BEGIN block' );
-    is_deeply( sort @mods,
-               (sort qw(Cwd Carp strict)) );
+    is_deeply( [sort @mods],
+               [sort qw(Cwd Carp strict)] );
 }
