@@ -1,3 +1,7 @@
+0.32  Wed Sep  8 23:15:13 CEST 2010
+    + Add archlib and privlib to the search path for core modules
+      (patch by Jonas B. Nielsen).
+
 0.31_01  Mon Apr 12 23:53:53 CEST 2010
     * Many test fixes.
 
