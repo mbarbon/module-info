@@ -9,5 +9,5 @@ META.yml
 Makefile.PL
 Makefile
 t/test_install
-MYMETA.yml
+MYMETA.*
 Module-Info-*.tar.gz
