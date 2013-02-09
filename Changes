@@ -1,3 +1,7 @@
+0.33  Sat Feb  9 13:12:22 CET 2013
+    * Fix tests under Perl 5.6.2 when some core modules have been
+      upgraded (patch by Andreas Koenig).
+
 0.32  Wed Sep  8 23:15:13 CEST 2010
     + Add archlib and privlib to the search path for core modules
       (patch by Jonas B. Nielsen).
