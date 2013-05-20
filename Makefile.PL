@@ -27,15 +27,7 @@ are upgrading from a version older than $LAST_API_CHANGE.
 CHANGE_WARN
 }
 
-eval {
-    require ExtUtils::MY_Metafile;
-    ExtUtils::MY_Metafile->import;
-
-    my_metafile
-      ( { license        => 'perl',
-          dynamic_config => 0,
-          } );
-};
+( my $mmv = ExtUtils::MakeMaker->VERSION ) =~ s/_//g;
 
 WriteMakefile(
     NAME            => $PACKAGE,
@@ -51,6 +43,12 @@ WriteMakefile(
     ( $] >= 5.005 ?
       ( AUTHOR          => 'Mattia Barbon <mbarbon@cpan.org>' ) :
       () ),
+    ( $mmv >= 6.47 ?
+      ( META_MERGE      => { license        => 'perl',
+                             dynamic_config => 0,
+                             }
+        ) :
+      () )
 );
 
 
