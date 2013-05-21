@@ -10,7 +10,7 @@ my $has_version_pm = eval 'use version; 1';
 
 use vars qw($VERSION @ISA $AUTOLOAD);
 # quotes 'version' for 5.004
-$VERSION = eval 'use version; 1' ? 'version'->new('0.33') : '0.33';
+$VERSION = eval 'use version; 1' ? 'version'->new('0.34') : '0.34';
 $VERSION = eval $VERSION;
 
 

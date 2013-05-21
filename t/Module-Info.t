@@ -6,11 +6,11 @@ use Config;
 
 my $has_version_pm = eval 'use version; 1';
 my $version_pm_VERSION = $has_version_pm ? 'version'->VERSION : 0;
-my $Mod_Info_VERSION = '0.33';
+my $Mod_Info_VERSION = '0.34';
 # 0.280 vith version.pm, 0.28 without, except for development versions
-my $Mod_Info_Pack_VERSION = !$has_version_pm             ? '0.33' :   # 0.3101
-         $has_version_pm && $version_pm_VERSION > '0.72' ? '0.33' :   # 0.3101
-                                                           '0.33';    # 0.310001
+my $Mod_Info_Pack_VERSION = !$has_version_pm             ? '0.34' :   # 0.3101
+         $has_version_pm && $version_pm_VERSION > '0.72' ? '0.34' :   # 0.3101
+                                                           '0.34';    # 0.310001
 
 my @old5lib = defined $ENV{PERL5LIB} ? ($ENV{PERL5LIB}) : ();
 $ENV{PERL5LIB} = join $Config{path_sep}, 'blib/lib', @old5lib;
