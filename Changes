@@ -3,6 +3,7 @@ Revision history for perl module Module::Info
 0.35
     - Added repository and license info to metadata
     - Tweaked format of Changes (this file) to match CPAN::Changes::Spec
+    - Removed META.json and META.yml from MANIFEST - they're generated
 
 0.34 2013-05-21 21:48:49 CEST
     - Replace Test::Soundex in tests with Class::Struct, since
