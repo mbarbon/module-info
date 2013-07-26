@@ -40,9 +40,16 @@ WriteMakefile(
                        },
     EXE_FILES       => [qw(bin/pfunc bin/module_info)],
     PL_FILES        => {}, # skip Build.PL
+    ($mmv >= 6.31 ? (LICENSE => 'perl') : ()),
     ( $] >= 5.005 ?
       ( AUTHOR          => 'Mattia Barbon <mbarbon@cpan.org>' ) :
       () ),
+    ($mmv <= 6.45 ? () : (META_MERGE => {
+            resources => {
+                repository => 'https://github.com/mbarbon/module-info'
+            },
+            })
+    ),
     ( $mmv >= 6.47 ?
       ( META_MERGE      => { license        => 'perl',
                              dynamic_config => 0,
