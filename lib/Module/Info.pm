@@ -237,6 +237,13 @@ sub version {
         next if $inpod || /^\s*#/;
 
         chomp;
+        # taken from ExtUtils::MM_Unix 6.63_02
+        next if /^\s*(if|unless|elsif)/;
+        if (m{^\s*package\s+\w[\w\:\']*\s+(v?[0-9._]+)\s*;}) {
+            local $^W = 0;
+            $result = $1;
+            last;
+        }
         next unless /([\$*])(([\w\:\']*)\bVERSION)\b.*\=/;
         my $eval = sprintf qq{
                       package Module::Info::_version;
