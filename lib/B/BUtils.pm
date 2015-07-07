@@ -214,6 +214,8 @@ that.
 
 =cut
 
+no warnings "redefine";
+
 sub B::OP::parent {
     my $target = shift;
     printf( "parent %s %s=(0x%07x)\n",
@@ -255,6 +257,8 @@ sub B::OP::parent {
    $result = $search->($start) and return $result while $start = $start->next;
    return $search->($start);
 }
+
+use warnings "redefine";
 
 =item C<< $op->previous >>
 
